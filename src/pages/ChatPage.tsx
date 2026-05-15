@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Hash, MessageSquarePlus, Trash2, Loader2, Cpu } from 'lucide-react';
+import { Send, Hash, MessageSquarePlus, Trash2, Loader2, Cpu, User, Volume2, VolumeX, Mic } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
@@ -106,6 +106,63 @@ export const ChatPage: React.FC = () => {
     setActiveSession(null);
   };
 
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const handleSpeak = (text: string) => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    
+    // Remove markdown characters for cleaner speech
+    const cleanText = text.replace(/[*#`_]/g, '').replace(/\[.*?\]\(.*?\)/g, '');
+    
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const handleMic = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in your browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+      setIsListening(false);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
   return (
     <div className="flex h-full bg-background text-primary">
       {/* Session Sidebar */}
@@ -154,62 +211,106 @@ export const ChatPage: React.FC = () => {
       <div className="flex-1 flex flex-col relative pb-8 h-full overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
           {messages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] rounded-xl p-4 ${
+            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+              <div className={`relative flex flex-col gap-2 ${
                 msg.role === 'user' 
-                  ? 'bg-surface border border-border' 
-                  : 'bg-transparent border border-border shadow-sm'
+                  ? 'max-w-[75%] items-end' 
+                  : 'max-w-[95%] md:max-w-[85%] items-start w-full'
               }`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${
-                    msg.role === 'user' ? 'bg-muted text-background' : 'bg-accent text-background'
+                {/* Message Header/Avatar */}
+                <div className={`flex items-center gap-2 mb-1 px-1 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold shadow-lg ${
+                    msg.role === 'user' 
+                      ? 'bg-gradient-to-br from-muted to-muted/50 text-background order-2' 
+                      : 'bg-gradient-to-br from-accent to-accent/60 text-background'
                   }`}>
-                    {msg.role === 'user' ? 'U' : 'AI'}
+                    {msg.role === 'user' ? <User size={16} /> : <Cpu size={16} />}
                   </div>
-                  <span className="text-xs font-mono text-muted">{msg.role === 'user' ? 'You' : 'PatternLab'}</span>
+                  <div className="flex flex-col">
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${msg.role === 'user' ? 'text-right' : 'text-left'} text-muted`}>
+                      {msg.role === 'user' ? 'You' : 'PatternLab AI'}
+                    </span>
+                    {msg.role === 'assistant' && msg.content && (
+                      <button 
+                        onClick={() => handleSpeak(msg.content)}
+                        className={`p-1 rounded-full transition-colors ml-1 ${
+                          isSpeaking ? 'bg-accent/20 text-accent animate-pulse' : 'hover:bg-accent/10 text-muted hover:text-accent'
+                        }`}
+                        title={isSpeaking ? "Stop reading" : "Read aloud"}
+                      >
+                        {isSpeaking ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="prose prose-invert prose-p:leading-relaxed prose-pre:bg-background prose-pre:border prose-pre:border-border prose-code:text-accent prose-code:bg-accent/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:font-mono prose-code:before:content-none prose-code:after:content-none max-w-none text-sm">
-                  {msg.content ? (
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        code({ node, inline, className, children, ...props }: any) {
-                          const match = /language-(\w+)/.exec(className || '');
-                          const isJson = match && match[1] === 'json';
-                          
-                          if (!inline && isJson) {
-                            try {
-                              const parsed = JSON.parse(String(children).replace(/\n$/, ''));
-                              if (parsed.id && parsed.title && parsed.level) {
-                                return <QuestionCard question={parsed} />;
-                              }
-                            } catch (e) {
-                              // Fallback to normal code block
-                            }
-                          }
 
-                          return !inline ? (
-                            <pre className={className} {...props}>
-                              <code className={className} {...props}>
+                {/* Message Bubble */}
+                <div className={`relative p-5 rounded-2xl shadow-xl transition-all ${
+                  msg.role === 'user' 
+                    ? 'bg-accent text-background rounded-tr-none' 
+                    : 'bg-surface/50 border border-border/50 backdrop-blur-sm rounded-tl-none w-full'
+                }`}>
+                  {/* AI response specific background effect */}
+                  {msg.role === 'assistant' && (
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+                  )}
+
+                  <div className={`max-w-none ${
+                    msg.role === 'user' 
+                      ? 'text-sm font-medium leading-relaxed' 
+                      : 'prose prose-invert prose-p:leading-8 prose-p:mb-4 prose-headings:mb-3 prose-headings:text-primary prose-strong:text-accent prose-ul:my-4 prose-li:my-1 text-sm md:text-base'
+                  }`}>
+                    {msg.content ? (
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          code({ node, inline, className, children, ...props }: any) {
+                            const match = /language-(\w+)/.exec(className || '');
+                            const isJson = match && match[1] === 'json';
+                            
+                            if (!inline && isJson) {
+                              try {
+                                const parsed = JSON.parse(String(children).replace(/\n$/, ''));
+                                if (parsed.id && parsed.title && parsed.level) {
+                                  return <QuestionCard question={parsed} />;
+                                }
+                              } catch (e) {
+                                // Fallback
+                              }
+                            }
+
+                            return !inline ? (
+                              <div className="relative group my-6">
+                                <div className="absolute -top-3 left-4 px-2 py-1 bg-background border border-border rounded text-[10px] font-bold text-muted uppercase tracking-widest z-10">
+                                  {match ? match[1] : 'code'}
+                                </div>
+                                <pre className={`${className} bg-background/80 p-5 rounded-xl border border-border/50 overflow-x-auto custom-scrollbar`} {...props}>
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                </pre>
+                              </div>
+                            ) : (
+                              <code className="bg-accent/10 text-accent px-1.5 py-0.5 rounded-md font-mono text-xs border border-accent/20" {...props}>
                                 {children}
                               </code>
-                            </pre>
-                          ) : (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          );
-                        }
-                      }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
-                  ) : (
-                    <div className="flex items-center gap-2 text-muted italic">
-                      <Loader2 className="animate-spin text-accent" size={16} />
-                      Thinking...
-                    </div>
-                  )}
+                            );
+                          }
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <div className="flex items-center gap-3 text-muted italic py-2">
+                        <div className="flex gap-1">
+                          <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce [animation-delay:-0.3s]" />
+                          <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce [animation-delay:-0.15s]" />
+                          <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" />
+                        </div>
+                        <span className="text-xs font-medium tracking-wide">Synthesizing response...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -230,15 +331,28 @@ export const ChatPage: React.FC = () => {
                 }
               }}
               placeholder="Ask about a DSA topic or pattern..."
-              className="w-full bg-surface border border-border rounded-lg pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-accent resize-none h-24"
+              className="w-full bg-surface border border-border rounded-lg pl-4 pr-24 py-3 text-sm focus:outline-none focus:border-accent resize-none h-24"
               disabled={isTyping}
             />
-            <button 
-              onClick={handleSend}
-              className="absolute right-3 bottom-3 p-2 bg-accent text-background rounded-md hover:opacity-90 transition-opacity"
-            >
-              <Send size={16} />
-            </button>
+            <div className="absolute right-3 bottom-3 flex items-center gap-2">
+              <button 
+                onClick={handleMic}
+                className={`p-2 rounded-md transition-all ${
+                  isListening 
+                    ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/20' 
+                    : 'bg-surface border border-border text-muted hover:text-accent hover:border-accent'
+                }`}
+                title={isListening ? "Stop listening" : "Voice input"}
+              >
+                <Mic size={16} />
+              </button>
+              <button 
+                onClick={handleSend}
+                className="p-2 bg-accent text-background rounded-md hover:opacity-90 transition-opacity"
+              >
+                <Send size={16} />
+              </button>
+            </div>
             <div className="absolute left-4 -bottom-6 flex items-center gap-4 text-xs text-muted">
               <span className="flex items-center gap-1 cursor-pointer hover:text-primary">
                 Language: {preferredLanguage}
