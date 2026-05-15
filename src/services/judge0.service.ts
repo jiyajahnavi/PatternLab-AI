@@ -97,7 +97,6 @@ async function simulateExecution(code: string, language: string, stdin: string, 
     // Basic heuristics to determine if the code is "valid enough" for a mock pass
     const hasReturn = code.includes('return') || code.includes('print(') || code.includes('console.log');
     const isReasonableLength = code.trim().length > 40;
-    const isNotJustHardcoded = !code.includes(`return ${expectedOutput}`);
 
     // If we have an expected output and the code looks like a real attempt
     if (expectedOutput && hasReturn && isReasonableLength) {

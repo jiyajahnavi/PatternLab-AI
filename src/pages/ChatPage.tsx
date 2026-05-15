@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Hash, MessageSquarePlus, Trash2, Loader2, Cpu, User, Volume2, VolumeX, Mic } from 'lucide-react';
+import { Send, Hash, MessageSquarePlus, Trash2, Cpu, User, Volume2, VolumeX, Mic, HelpCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
-import { useSettingsStore } from '../store/useSettingsStore';
+import { useSettingsStore, type MentorMode } from '../store/useSettingsStore';
 import { aiService } from '../services/ai.service';
 import { QuestionCard } from '../components/chat/QuestionCard';
+import { VisualizerCard } from '../components/chat/VisualizerCard';
 import { useChatStore, type ChatMessage } from '../store/useChatStore';
 import { useVisualizerStore, detectDSTopic, isExplainRequest, getDryRunSteps, DS_LABELS, type DSType } from '../store/useVisualizerStore';
+import { BookOpen, GraduationCap, Bug, Zap, Repeat } from 'lucide-react';
 
 export const ChatPage: React.FC = () => {
   const [input, setInput] = useState('');
@@ -18,7 +20,7 @@ export const ChatPage: React.FC = () => {
   const navigate = useNavigate();
   const { setTopic } = useVisualizerStore();
   
-  const { preferredLanguage, model } = useSettingsStore();
+  const { preferredLanguage, model, mentorMode, setMentorMode } = useSettingsStore();
   const { 
     sessions, 
     activeSessionId, 
@@ -28,6 +30,14 @@ export const ChatPage: React.FC = () => {
     setActiveSession, 
     deleteSession 
   } = useChatStore();
+
+  const MENTOR_MODES: { id: MentorMode; label: string; icon: any; color: string; desc: string }[] = [
+    { id: 'learn', label: 'Learn', icon: BookOpen, color: 'text-blue-400', desc: 'Slow, visual, heavy hints' },
+    { id: 'interview', label: 'Interview', icon: GraduationCap, color: 'text-purple-400', desc: 'Mock FAANG interview' },
+    { id: 'debug', label: 'Debug', icon: Bug, color: 'text-red-400', desc: 'Focus on bugs & edge cases' },
+    { id: 'optimization', label: 'Optimize', icon: Zap, color: 'text-yellow-400', desc: 'Complexity & tradeoffs' },
+    { id: 'revision', label: 'Revision', icon: Repeat, color: 'text-green-400', desc: 'Quiz from weak topics' },
+  ];
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
   const messages = activeSession?.messages || [
@@ -169,10 +179,34 @@ export const ChatPage: React.FC = () => {
       <div className="w-64 border-r border-border bg-surface p-4 hidden md:flex flex-col h-full">
         <button 
           onClick={handleNewChat}
-          className="flex items-center justify-center gap-2 w-full py-2 bg-accent text-background rounded-md font-medium mb-6 hover:opacity-90 transition-opacity"
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-accent text-background rounded-xl font-bold mb-6 hover:opacity-90 transition-all shadow-lg shadow-accent/20 active:scale-95"
         >
           <MessageSquarePlus size={18} /> New Chat
         </button>
+
+        <div className="text-xs text-muted font-bold tracking-wider mb-3">MENTOR MODE</div>
+        <div className="flex flex-col gap-1.5 mb-8">
+          {MENTOR_MODES.map((mode) => (
+            <button
+              key={mode.id}
+              onClick={() => setMentorMode(mode.id)}
+              className={`group flex flex-col p-2.5 rounded-xl border transition-all text-left ${
+                mentorMode === mode.id 
+                  ? 'bg-accent/10 border-accent/30 shadow-inner' 
+                  : 'bg-transparent border-transparent hover:bg-surface-lighter text-muted'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <mode.icon size={16} className={mentorMode === mode.id ? mode.color : 'text-muted group-hover:text-primary'} />
+                <span className={`text-xs font-bold uppercase tracking-tight ${mentorMode === mode.id ? 'text-primary' : ''}`}>
+                  {mode.label}
+                </span>
+              </div>
+              <p className="text-[10px] leading-tight text-muted/60">{mode.desc}</p>
+            </button>
+          ))}
+        </div>
+
         <div className="text-xs text-muted font-bold tracking-wider mb-3">RECENT SESSIONS</div>
         <div className="flex flex-col gap-2 overflow-y-auto custom-scrollbar flex-1">
           {sessions.length === 0 ? (
@@ -261,45 +295,110 @@ export const ChatPage: React.FC = () => {
                       : 'prose prose-invert prose-p:leading-8 prose-p:mb-4 prose-headings:mb-3 prose-headings:text-primary prose-strong:text-accent prose-ul:my-4 prose-li:my-1 text-sm md:text-base'
                   }`}>
                     {msg.content ? (
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          code({ node, inline, className, children, ...props }: any) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            const isJson = match && match[1] === 'json';
-                            
-                            if (!inline && isJson) {
-                              try {
-                                const parsed = JSON.parse(String(children).replace(/\n$/, ''));
-                                if (parsed.id && parsed.title && parsed.level) {
-                                  return <QuestionCard question={parsed} />;
-                                }
-                              } catch (e) {
-                                // Fallback
-                              }
-                            }
+                      <>
+                        {/* Claude-style Clarifications at the Top */}
+                        {msg.role === 'assistant' && msg.content.includes('[CLARIFICATIONS:') && (
+                          <div className="mb-6 bg-accent/5 border border-accent/20 p-4 rounded-xl animate-in fade-in slide-in-from-top-1 duration-500">
+                            <div className="text-[10px] font-bold text-accent uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <HelpCircle size={12} /> To give you the best answer, should I:
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {(() => {
+                                const match = msg.content.match(/\[CLARIFICATIONS: (.*?)\]/s);
+                                if (!match) return null;
+                                try {
+                                  const clarifications = JSON.parse(`[${match[1]}]`);
+                                  return (clarifications as string[]).map((q, qIdx) => (
+                                    <button
+                                      key={qIdx}
+                                      onClick={() => setInput(q)}
+                                      className="px-3 py-1.5 bg-background border border-border hover:border-accent hover:text-accent rounded-lg text-xs font-medium transition-all"
+                                    >
+                                      {q}
+                                    </button>
+                                  ));
+                                } catch (e) { return null; }
+                              })()}
+                            </div>
+                          </div>
+                        )}
 
-                            return !inline ? (
-                              <div className="relative group my-6">
-                                <div className="absolute -top-3 left-4 px-2 py-1 bg-background border border-border rounded text-[10px] font-bold text-muted uppercase tracking-widest z-10">
-                                  {match ? match[1] : 'code'}
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            code({ node, inline, className, children, ...props }: any) {
+                              const match = /language-(\w+)/.exec(className || '');
+                              const isJson = match && match[1] === 'json';
+                              
+                              if (!inline && isJson) {
+                                try {
+                                  const parsed = JSON.parse(String(children).replace(/\n$/, ''));
+                                  if (parsed.id && parsed.title && parsed.level) {
+                                    return <QuestionCard question={parsed} />;
+                                  }
+                                  if (parsed.type === 'visualization' && parsed.topic) {
+                                    return <VisualizerCard visualization={parsed} />;
+                                  }
+                                } catch (e) {
+                                  // Fallback
+                                }
+                              }
+
+                              return !inline ? (
+                                <div className="relative group my-6">
+                                  <div className="absolute -top-3 left-4 px-2 py-1 bg-background border border-border rounded text-[10px] font-bold text-muted uppercase tracking-widest z-10">
+                                    {match ? match[1] : 'code'}
+                                  </div>
+                                  <pre className={`${className} bg-background/80 p-5 rounded-xl border border-border/50 overflow-x-auto custom-scrollbar`} {...props}>
+                                    <code className={className} {...props}>
+                                      {children}
+                                    </code>
+                                  </pre>
                                 </div>
-                                <pre className={`${className} bg-background/80 p-5 rounded-xl border border-border/50 overflow-x-auto custom-scrollbar`} {...props}>
-                                  <code className={className} {...props}>
-                                    {children}
-                                  </code>
-                                </pre>
-                              </div>
-                            ) : (
-                              <code className="bg-accent/10 text-accent px-1.5 py-0.5 rounded-md font-mono text-xs border border-accent/20" {...props}>
-                                {children}
-                              </code>
-                            );
+                              ) : (
+                                <code className="bg-accent/10 text-accent px-1.5 py-0.5 rounded-md font-mono text-xs border border-accent/20" {...props}>
+                                  {children}
+                                </code>
+                              );
+                            }
+                          }}
+                        >
+                          {msg.role === 'assistant' 
+                            ? msg.content
+                                .replace(/\[CLARIFICATIONS: .*?\]/s, '')
+                                .replace(/\[SUGGESTIONS: .*?\]/s, '')
+                                .replace(/\[MEMORY: .*?\]/s, '')
+                                .trim()
+                            : msg.content
                           }
-                        }}
-                      >
-                        {msg.content}
-                      </ReactMarkdown>
+                        </ReactMarkdown>
+
+                        {/* Claude-style Optional Suggestions */}
+                        {msg.role === 'assistant' && msg.content.includes('[SUGGESTIONS:') && (
+                          <div className="mt-8 flex flex-wrap gap-2 border-t border-border/30 pt-6 animate-in fade-in slide-in-from-top-2 duration-700">
+                            {(() => {
+                              const match = msg.content.match(/\[SUGGESTIONS: (.*?)\]/s);
+                              if (!match) return null;
+                              try {
+                                const suggestions = JSON.parse(`[${match[1]}]`);
+                                return (suggestions as string[]).map((suggestion, sIdx) => (
+                                  <button
+                                    key={sIdx}
+                                    onClick={() => {
+                                      setInput(suggestion);
+                                      // Optional: auto-send
+                                      // setTimeout(() => handleSend(), 50);
+                                    }}
+                                    className="px-4 py-2 bg-accent/5 border border-accent/20 hover:bg-accent/10 hover:border-accent/40 rounded-full text-xs font-medium text-accent transition-all hover:-translate-y-0.5"
+                                  >
+                                    {suggestion}
+                                  </button>
+                                ));
+                              } catch (e) { return null; }
+                            })()}
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className="flex items-center gap-3 text-muted italic py-2">
                         <div className="flex gap-1">

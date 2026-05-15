@@ -6,11 +6,11 @@ import { useVisualizerStore, DS_LABELS, type DSType } from '../store/useVisualiz
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-const DS_OPTIONS: DSType[] = ['stack','queue','array','linked-list','binary-tree','graph','binary-search'];
+const DS_OPTIONS: DSType[] = ['stack','queue','array','linked-list','binary-tree','graph','binary-search', 'sorting', 'recursion'];
 
 // ─── Visualizer sub-components ────────────────────────────────────────────────
 
-function StackViz({ data }: { data: number[] }) {
+function StackViz({ data, highlight = [] }: { data: number[]; highlight?: number[] }) {
   return (
     <div className="flex flex-col-reverse items-center gap-2">
       <div className="w-48 h-2 bg-border rounded" />
@@ -18,8 +18,7 @@ function StackViz({ data }: { data: number[] }) {
         {data.map((v, i) => (
           <motion.div key={`${i}-${v}`}
             initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className={`w-44 h-11 flex items-center justify-between px-4 rounded-lg border font-mono text-sm ${i === data.length - 1 ? 'border-accent bg-accent/10 text-accent shadow-[0_0_12px_rgba(124,111,247,0.3)]' : 'border-border bg-surface text-primary'}`}
+            className={`w-44 h-11 flex items-center justify-between px-4 rounded-lg border font-mono text-sm transition-all ${highlight.includes(i) ? 'border-accent bg-accent/20 text-accent scale-105 shadow-[0_0_15px_rgba(124,111,247,0.4)]' : 'border-border bg-surface text-primary'}`}
           >
             <span className="text-muted text-xs">{i}</span>
             <span className="font-bold">{v}</span>
@@ -31,96 +30,104 @@ function StackViz({ data }: { data: number[] }) {
   );
 }
 
-function QueueViz({ data }: { data: number[] }) {
+function QueueViz({ data, highlight = [] }: { data: number[]; highlight?: number[] }) {
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="flex items-center gap-2">
         {data.map((v, i) => (
           <motion.div key={`${i}-${v}`}
-            initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}
-            className={`w-14 h-14 flex flex-col items-center justify-center rounded-lg border font-mono text-sm font-bold ${i === 0 ? 'border-green-500 bg-green-500/10 text-green-400' : i === data.length - 1 ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-surface text-primary'}`}
+            animate={{ scale: highlight.includes(i) ? 1.1 : 1 }}
+            className={`w-14 h-14 flex flex-col items-center justify-center rounded-lg border font-mono text-sm font-bold transition-all ${highlight.includes(i) ? 'border-accent bg-accent/20 text-accent shadow-lg shadow-accent/20' : i === 0 ? 'border-green-500 bg-green-500/10 text-green-400' : 'border-border bg-surface text-primary'}`}
           >
             {v}
           </motion.div>
         ))}
       </div>
       <div className="flex justify-between w-full px-4 text-xs text-muted font-mono">
-        <span className="text-green-400">← FRONT (dequeue)</span>
-        <span className="text-accent">REAR (enqueue) →</span>
+        <span className="text-green-400">← FRONT</span>
+        <span className="text-accent">REAR →</span>
       </div>
     </div>
   );
 }
 
-function ArrayViz({ data, highlight }: { data: number[]; highlight: number }) {
+function ArrayViz({ data, highlight = [] }: { data: number[]; highlight?: number[] }) {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="flex gap-1">
+      <div className="flex flex-wrap justify-center gap-1 max-w-2xl">
         {data.map((v, i) => (
           <motion.div key={i}
-            animate={{ scale: i === highlight ? 1.15 : 1, backgroundColor: i === highlight ? 'rgba(124,111,247,0.2)' : 'transparent' }}
-            className={`w-12 h-12 flex items-center justify-center border font-mono text-sm font-bold rounded ${i === highlight ? 'border-accent text-accent shadow-[0_0_10px_rgba(124,111,247,0.4)]' : 'border-border text-primary'}`}
+            animate={{ 
+              scale: highlight.includes(i) ? 1.2 : 1, 
+              backgroundColor: highlight.includes(i) ? 'rgba(124,111,247,0.25)' : 'transparent',
+              y: highlight.includes(i) ? -4 : 0
+            }}
+            className={`w-12 h-12 flex items-center justify-center border font-mono text-sm font-bold rounded-lg transition-all ${highlight.includes(i) ? 'border-accent text-accent shadow-[0_4px_20px_rgba(124,111,247,0.4)] z-10' : 'border-border text-primary opacity-80'}`}
           >
             {v}
           </motion.div>
         ))}
       </div>
-      <div className="flex gap-1">
+      <div className="flex justify-center gap-1">
         {data.map((_, i) => (
-          <div key={i} className="w-12 text-center text-xs text-muted font-mono">{i}</div>
+          <div key={i} className={`w-12 text-center text-[10px] font-mono transition-colors ${highlight.includes(i) ? 'text-accent font-bold' : 'text-muted/40'}`}>{i}</div>
         ))}
       </div>
     </div>
   );
 }
 
-function LinkedListViz({ data }: { data: number[] }) {
+function LinkedListViz({ data, highlight = [] }: { data: number[]; highlight?: number[] }) {
   return (
-    <div className="flex items-center gap-0 flex-wrap justify-center">
+    <div className="flex items-center gap-0 flex-wrap justify-center p-4">
       {data.map((v, i) => (
         <div key={i} className="flex items-center">
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-            className={`flex flex-col border rounded-lg overflow-hidden ${i === 0 ? 'border-accent' : 'border-border'}`}
+          <motion.div 
+            animate={{ 
+              scale: highlight.includes(i) ? 1.1 : 1,
+              y: highlight.includes(i) ? -5 : 0
+            }}
+            className={`flex flex-col border rounded-xl overflow-hidden transition-all ${highlight.includes(i) ? 'border-accent shadow-[0_0_20px_rgba(124,111,247,0.3)]' : 'border-border'}`}
           >
-            <div className={`px-4 py-2 text-sm font-mono font-bold ${i === 0 ? 'bg-accent/10 text-accent' : 'bg-surface text-primary'}`}>{v}</div>
-            <div className="px-2 py-1 bg-background text-[10px] text-muted font-mono text-center border-t border-border">
-              {i < data.length - 1 ? `→ node${i + 1}` : 'NULL'}
+            <div className={`px-5 py-2.5 text-sm font-mono font-bold ${highlight.includes(i) ? 'bg-accent/20 text-accent' : i === 0 ? 'bg-accent/5 text-primary' : 'bg-surface text-primary'}`}>{v}</div>
+            <div className="px-2 py-1 bg-background text-[9px] text-muted/60 font-mono text-center border-t border-border uppercase tracking-tighter">
+              {i < data.length - 1 ? `next →` : 'null'}
             </div>
           </motion.div>
-          {i < data.length - 1 && <div className="w-6 h-0.5 bg-muted/40 flex items-center justify-center"><ChevronRight size={12} className="text-muted" /></div>}
+          {i < data.length - 1 && (
+            <div className={`w-8 h-px transition-colors ${highlight.includes(i) ? 'bg-accent shadow-[0_0_10px_#7C6FF7]' : 'bg-muted/20'}`} />
+          )}
         </div>
       ))}
     </div>
   );
 }
 
-function BinaryTreeViz({ data }: { data: number[] }) {
+function BinaryTreeViz({ data, highlight = [] }: { data: number[]; highlight?: number[] }) {
   const nodeAt = (i: number) => (i < data.length ? data[i] : null);
   return (
-    <div className="flex flex-col items-center gap-6">
-      {/* Level 0 */}
-      <div className="flex justify-center">
-        <TreeNode val={nodeAt(0)} highlight />
+    <div className="flex flex-col items-center gap-8 py-4">
+      <div className="flex justify-center"><TreeNode val={nodeAt(0)} highlight={highlight.includes(0)} /></div>
+      <div className="flex gap-28 relative">
+        <TreeNode val={nodeAt(1)} highlight={highlight.includes(1)} />
+        <TreeNode val={nodeAt(2)} highlight={highlight.includes(2)} />
       </div>
-      {/* Level 1 */}
-      <div className="flex gap-24">
-        <TreeNode val={nodeAt(1)} />
-        <TreeNode val={nodeAt(2)} />
-      </div>
-      {/* Level 2 */}
       <div className="flex gap-8">
-        {[3, 4, 5, 6].map(i => <TreeNode key={i} val={nodeAt(i)} />)}
+        {[3, 4, 5, 6].map(i => <TreeNode key={i} val={nodeAt(i)} highlight={highlight.includes(i)} />)}
       </div>
     </div>
   );
 }
 
 function TreeNode({ val, highlight }: { val: number | null; highlight?: boolean }) {
-  if (val === null) return <div className="w-10 h-10 rounded-full border border-dashed border-border/30" />;
+  if (val === null) return <div className="w-11 h-11 rounded-full border border-dashed border-border/20" />;
   return (
-    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-mono text-sm font-bold border-2 ${highlight ? 'border-accent bg-accent/15 text-accent' : 'border-border bg-surface text-primary'}`}>
+    <motion.div 
+      animate={{ scale: highlight ? 1.25 : 1 }}
+      className={`w-11 h-11 rounded-full flex items-center justify-center font-mono text-sm font-bold border-2 transition-all ${highlight ? 'border-accent bg-accent/20 text-accent shadow-[0_0_20px_rgba(124,111,247,0.5)] z-10' : 'border-border bg-surface text-primary'}`}
+    >
       {val}
-    </div>
+    </motion.div>
   );
 }
 
@@ -173,6 +180,47 @@ function BinarySearchViz({ data, target, step }: { data: number[]; target: numbe
   );
 }
 
+function SortingViz({ data, highlight }: { data: number[]; highlight: number[] }) {
+  return (
+    <div className="flex items-end gap-1 h-64 border-b border-border px-8">
+      {data.map((v, i) => (
+        <motion.div key={i}
+          animate={{ 
+            height: `${(v / 80) * 100}%`,
+            backgroundColor: highlight.includes(i) ? '#7C6FF7' : 'rgba(124,111,247,0.3)'
+          }}
+          className="w-8 rounded-t transition-colors shadow-lg shadow-accent/5"
+        >
+          <div className="text-[10px] text-center -mt-5 font-mono text-muted">{v}</div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+function RecursionViz({ steps, currentStep }: { steps: string[]; currentStep: number }) {
+  const calls = steps.slice(0, currentStep + 1);
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <div className="text-xs font-mono text-muted mb-4 uppercase tracking-widest">Call Stack Execution</div>
+      <div className="flex flex-col-reverse gap-2">
+        {calls.map((call, i) => (
+          <motion.div key={i}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className={`w-64 p-3 rounded-lg border shadow-xl ${i === calls.length - 1 ? 'border-accent bg-accent/10 shadow-accent/20' : 'border-border bg-surface text-muted opacity-60'}`}
+          >
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold font-mono">{call}</span>
+              <span className="text-[10px] text-muted">Level {i}</span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Explanations ─────────────────────────────────────────────────────────────
 const EXPLANATIONS: Record<DSType, { title: string; description: string; ops: string[] }> = {
   stack: {
@@ -210,6 +258,16 @@ const EXPLANATIONS: Record<DSType, { title: string; description: string; ops: st
     description: 'Efficiently find a target in a sorted array. Each step eliminates half the search space, giving O(log n) time.',
     ops: ['Step 1: Find mid = (lo + hi) / 2', 'Step 2: If arr[mid] == target → found!', 'Step 3: If target > arr[mid] → search right half', 'Step 4: Else search left half'],
   },
+  sorting: {
+    title: 'Sorting Algorithms',
+    description: 'Reorganizing data in ascending or descending order. Different algorithms (Bubble, Merge, Quick) have different tradeoffs.',
+    ops: ['Merge Sort: O(n log n) - Stable', 'Quick Sort: O(n log n) - In-place', 'Bubble Sort: O(n²) - Simple but slow', 'Space complexity varies by algorithm'],
+  },
+  recursion: {
+    title: 'Recursion — Call Stack',
+    description: 'A function calling itself to solve smaller sub-problems. Each call creates a new frame on the call stack.',
+    ops: ['Base Case: When to stop recursion', 'Recursive Step: The function call itself', 'Stack Overflow: Too many recursive calls', 'Divide & Conquer foundation'],
+  }
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -229,7 +287,7 @@ export const VisualizerPage: React.FC = () => {
   const [dryRunStep, setDryRunStep] = useState(0);
   const [dryRunPlaying, setDryRunPlaying] = useState(false);
 
-  const info = EXPLANATIONS[topic];
+  const info = EXPLANATIONS[topic] || EXPLANATIONS.array;
   const hasDryRun = dryRunSteps.length > 0;
   const currentDryStep = dryRunSteps[dryRunStep] || null;
 
@@ -344,13 +402,15 @@ export const VisualizerPage: React.FC = () => {
           style={{ backgroundImage: 'radial-gradient(circle, #2A2A3E 1px, transparent 1px)', backgroundSize: '28px 28px' }}>
           <AnimatePresence mode="wait">
             <motion.div key={topic} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.2 }}>
-              {topic === 'stack' && <StackViz data={stackData} />}
-              {topic === 'queue' && <QueueViz data={queueData} />}
-              {topic === 'array' && <ArrayViz data={arrayData} highlight={arrayHL} />}
-              {topic === 'linked-list' && <LinkedListViz data={llData} />}
-              {topic === 'binary-tree' && <BinaryTreeViz data={treeData} />}
+              {topic === 'stack' && <StackViz data={currentDryStep?.state?.stack || stackData} highlight={currentDryStep?.highlight} />}
+              {topic === 'queue' && <QueueViz data={currentDryStep?.state?.queue || queueData} highlight={currentDryStep?.highlight} />}
+              {topic === 'array' && <ArrayViz data={currentDryStep?.state?.nums || currentDryStep?.state?.data || arrayData} highlight={currentDryStep?.highlight} />}
+              {topic === 'linked-list' && <LinkedListViz data={currentDryStep?.state?.nodes || currentDryStep?.state?.data || llData} highlight={currentDryStep?.highlight} />}
+              {topic === 'binary-tree' && <BinaryTreeViz data={currentDryStep?.state?.nodes || currentDryStep?.state?.data || treeData} highlight={currentDryStep?.highlight} />}
               {topic === 'graph' && <GraphViz />}
-              {topic === 'binary-search' && <BinarySearchViz data={arrayData} target={bsTarget} step={bsStep} />}
+              {topic === 'binary-search' && <BinarySearchViz data={currentDryStep?.state?.nums || arrayData} target={currentDryStep?.state?.target || bsTarget} step={hasDryRun ? dryRunStep : bsStep} />}
+              {topic === 'sorting' && <SortingViz data={currentDryStep?.state?.nums || [10, 30, 20, 50, 40, 60, 25]} highlight={currentDryStep?.highlight || []} />}
+              {topic === 'recursion' && <RecursionViz steps={dryRunSteps.map(s => s.description)} currentStep={dryRunStep} />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -439,7 +499,7 @@ export const VisualizerPage: React.FC = () => {
                   <button onClick={() => setBsStep(s => Math.max(0, s - 1))} className="flex-1 py-1.5 text-xs border border-border rounded bg-background hover:border-accent transition-colors flex items-center justify-center gap-1"><ChevronLeft size={12} /> Prev</button>
                   <button onClick={() => setBsStep(s => s + 1)} className="flex-1 py-1.5 text-xs border border-border rounded bg-background hover:border-accent transition-colors flex items-center justify-center gap-1">Next <ChevronRight size={12} /></button>
                 </>}
-                {(topic === 'array' || topic === 'binary-tree' || topic === 'graph') && (
+                {(topic === 'array' || topic === 'binary-tree' || topic === 'graph' || topic === 'sorting' || topic === 'recursion') && (
                   <button onClick={() => setIsPlaying(p => !p)} className="w-full py-1.5 text-xs border border-accent rounded bg-accent/10 text-accent hover:bg-accent/20 transition-colors">
                     {isPlaying ? '⏸ Pause' : '▶ Animate'}
                   </button>

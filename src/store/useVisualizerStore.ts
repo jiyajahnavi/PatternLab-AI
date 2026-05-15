@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type DSType = 'stack' | 'queue' | 'array' | 'linked-list' | 'binary-tree' | 'graph' | 'binary-search';
+export type DSType = 'stack' | 'queue' | 'array' | 'linked-list' | 'binary-tree' | 'graph' | 'binary-search' | 'sorting' | 'recursion';
 
 export interface DryRunStep {
   step: number;
@@ -105,4 +105,6 @@ export const DS_LABELS: Record<DSType, string> = {
   'binary-tree': 'Binary Tree',
   'graph': 'Graph',
   'binary-search': 'Binary Search',
+  'sorting': 'Sorting',
+  'recursion': 'Recursion',
 };
