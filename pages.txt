@@ -1,0 +1,194 @@
+================================================================
+PATTERNLAB — PROJECT STRUCTURE & FILE DETAILS
+================================================================
+A full-stack DSA learning platform built with React + TypeScript +
+Vite + TailwindCSS + Zustand + Supabase + Gemini AI.
+================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ROOT FILES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+index.html          — App entry point HTML; loads the Vite bundle and sets the page title "PatternLab".
+package.json        — Defines npm scripts (dev, build, lint, preview) and all project dependencies including React, Zustand, Gemini AI SDK, Monaco Editor, Recharts, Framer Motion.
+vite.config.ts      — Vite bundler configuration with React plugin.
+tailwind.config.js  — Tailwind CSS config; defines custom colors (background, surface, border, accent, muted, primary) used across all components.
+tsconfig.json       — Root TypeScript config that references app and node configs.
+tsconfig.app.json   — TypeScript settings for the main app (strict mode, JSX, module resolution).
+tsconfig.node.json  — TypeScript settings for Vite's Node.js config file.
+eslint.config.js    — ESLint rules using TypeScript and React Hooks plugins.
+postcss.config.js   — PostCSS config; enables Tailwind and Autoprefixer.
+.env                — Environment variables: VITE_GEMINI_API_KEY for Gemini AI, VITE_RAPIDAPI_KEY for Judge0 code execution, VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY for the database.
+.gitignore          — Ignores node_modules, dist, .env from Git.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/ — CORE APPLICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+src/main.tsx        — React app bootstrap; mounts <App /> into the DOM root div.
+src/App.tsx         — Root router component; handles Google OAuth session detection on load, sets up protected routes (redirects to /login if unauthenticated), and defines all page routes: /chat, /brain, /problem/:id, /visualizer, /progress, /reminder, /profile, /settings.
+src/Layout.tsx      — Shared layout wrapper used by all protected routes; renders the Sidebar on the left and an <Outlet /> for page content on the right.
+src/index.css       — Global CSS: sets background/text color variables, custom scrollbar styles, and Tailwind base directives.
+src/App.css         — Additional app-level CSS (animations, transitions).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/pages/ — PAGES (ROUTES)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LoginPage.tsx       — Unauthenticated landing page; shows PatternLab branding and a "Continue with Google" OAuth button via Supabase; redirects to /chat on successful login.
+
+ChatPage.tsx        — Main AI chat interface at /chat; features a sidebar with Mentor Mode selector (Learn/Interview/Debug/Optimize/Revision) and recent session history, a streaming chat area that renders AI responses as Markdown with syntax-highlighted code blocks, interactive QuestionCards (AI-generated problems), VisualizerCards (launch visualizer), clarification pills, and follow-up suggestion chips; also supports voice input (Web Speech API) and text-to-speech readback.
+
+ProblemPage.tsx     — Full IDE experience at /problem/:id; uses react-resizable-panels to show a 3-panel layout: left = ProblemPanel (description/hints/notes/solutions), center = CodeEditor (Monaco with line annotations), bottom = TestCasePanel (run tests) + AIReviewPanel (AI feedback after submission); handles running code through Judge0 and requesting AI review from Gemini.
+
+VisualizerPage.tsx  — Interactive algorithm visualizer at /visualizer; supports 9 data structure types (Array, Stack, Queue, Linked List, Binary Tree, Graph, Binary Search, Sorting, Recursion); renders animated step-by-step dry-run visualizations with user-controlled playback, context from the chat AI, and a topic selector sidebar.
+
+ProgressPage.tsx    — DSA curriculum tracker at /progress; shows summary stats (points, streak, topics mastered), a full topic list sidebar, and a detailed topic view with per-level (Easy/Medium/Hard) progress bars and pattern-specific solved counts.
+
+ReminderPage.tsx    — Spaced-repetition revision scheduler at /reminder; shows today's due revision tasks, allows marking complete or skipping (snooze to tomorrow), displays a full calendar view of scheduled revisions, and lets users configure repetition intervals and weekend-only mode.
+
+ProfilePage.tsx     — User profile page at /profile; shows Google avatar, display name, email, join date, editable bio/location/website/GitHub/Twitter; displays stats (problems solved, topics mastered, streak, points); renders a GitHub-style activity heatmap, a Level Breakdown doughnut chart, and a Topic Mastery grid.
+
+BrainPage.tsx       — PatternLab Brain AI intelligence hub at /brain; features an animated neural-pulse header showing Brain Rating + tier; contains 5 panels: SkillRadarPanel (radar chart of DSA skill), RankingPanel (ELO rating, percentiles, badges), AdaptiveQuestGenPanel (AI-generated original questions by topic + difficulty), SolutionJudgePanel (Monaco editor + AI mentor evaluation), BehaviorInsightsPanel (AI behavioral traits, strengths/weaknesses, spaced revision schedule); also shows a recent session history feed.
+
+SettingsPage.tsx    — User settings at /settings; lets users configure preferred programming language, AI model selection (Gemini Flash/Pro), UI theme (dark/light/system), Mentor Mode default, and API keys for Gemini, OpenAI, Anthropic, custom endpoints.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/components/shared/ — LAYOUT COMPONENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sidebar.tsx         — Left navigation bar (14px wide icon strip); contains nav icons for Chat, Brain (violet Sparkles with pulse dot), Visualizer, Progress, Reminder, Profile, Settings; active route is highlighted, hovering shows a tooltip.
+Topbar.tsx          — Top header bar shown on some pages; displays page title, user avatar, and quick action buttons.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/components/chat/ — CHAT COMPONENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+QuestionCard.tsx    — Renders an AI-generated DSA problem card inside chat messages; shows title, description preview, topic/pattern tags, difficulty badge (Easy/Medium/Hard), estimated time, and a "Solve" button that loads the problem into the IDE and navigates to /problem/:id.
+VisualizerCard.tsx  — Renders a "Launch Visualizer" card inside chat when the AI detects an algorithm explanation; shows algorithm title, description, and a button that loads the dry-run steps into VisualizerStore and navigates to /visualizer.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/components/ide/ — IDE COMPONENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CodeEditor.tsx      — Monaco Editor wrapper; displays code with language selector (Python/Java/C++/JS/Go/Rust), supports resetting code, and renders colored gutter decorations for AI line annotations (errors = red, warnings = yellow, success = green).
+ProblemPanel.tsx    — Left IDE panel showing 4 tabs: Problem (markdown description + examples + constraints), Hints (progressive reveal — click to unlock each hint), Notes (freeform scratchpad textarea), Solutions (locked by default).
+TestCasePanel.tsx   — Bottom IDE panel; lists test cases with input/expected output/actual output; shows pass/fail status after code execution; allows switching between test cases and viewing execution time and memory.
+AIReviewPanel.tsx   — Slide-up panel that appears after code submission; shows verdict (Correct/Wrong/TLE/Error), time/space complexity, approach feedback (markdown), line-by-line annotations, optimization suggestion (expandable code skeleton), AI hints (progressive reveal), and quick-action buttons (Explain approach, Alternative approach, Why O(n²)?, Add test cases).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/components/profile/ — PROFILE COMPONENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HeatmapCalendar.tsx     — GitHub-style contribution heatmap showing daily activity for the past year; cells are colored by intensity (problems solved per day); used on ProfilePage.
+LevelBreakdownChart.tsx — Recharts doughnut chart breaking down solved problems by level (Easy/Medium/Hard) with color-coded segments; shown on ProfilePage.
+TopicMasteryGrid.tsx    — Grid of all curriculum topics showing completion percentage as mini progress bars; shown on ProfilePage.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/components/progress/ — PROGRESS COMPONENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SummaryCards.tsx    — Top row of stat cards on ProgressPage showing: Total Points, Current Streak, Max Streak, Problems Solved, and Topics Mastered.
+TopicList.tsx       — Scrollable sidebar list of all 18 curriculum topics (Arrays → Bit Manipulation); each shows a compact progress indicator; clicking selects the topic for detail view.
+TopicDetail.tsx     — Main content area on ProgressPage for a selected topic; shows topic name, patterns list, level-by-level progress bars (Easy/Medium/Hard with solved/total counts), pattern breakdown stats, and a "Fully Completed" trophy badge.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/components/brain/ — BRAIN AI COMPONENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SkillRadarPanel.tsx         — Recharts RadarChart visualizing mastery across 8 DSA domains (Arrays, DP, Graph, Stack, Binary Search, HashMap, Tree, Recursion); highlights top 3 strong and top 3 weak topics with mini bar indicators.
+AdaptiveQuestGenPanel.tsx   — UI panel for Brain's question generator: topic dropdown (17 topics), difficulty toggle (Beginner/Intermediate/Advanced), "Generate Question" button that calls Gemini AI to create an original problem; shows result as a card with metadata pills (topic, pattern, level, complexity) and a "Solve in IDE" button; shows error banner if generation fails.
+SolutionJudgePanel.tsx      — Monaco editor panel for submitting code to Brain's AI judge; tracks time elapsed, hints used, submission count; shows loading state while Gemini evaluates; displays verdict (Correct/Suboptimal/Wrong), 3 score bars (Code Quality, Optimization, Edge Cases), multi-paragraph mentor feedback, improvement hints, and a "Better Approach" box; also records the session to BrainStore.
+BehaviorInsightsPanel.tsx   — Shows AI-analyzed behavioral trait cards (strengths in green, weaknesses in red, neutral in blue), a personality summary quote, and a spaced-repetition revision schedule with urgency levels (Critical/High/Medium/Low); has a refresh button to trigger re-analysis via Gemini.
+RankingPanel.tsx            — Displays the user's ELO-style Brain Rating with tier badge (Novice → Grandmaster), tier progress bar toward next tier, 4 skill score sub-gauges (Code Quality, Optimization, Debugging, Consistency), global comparison statements, per-topic percentile bars for all practiced topics, and earned/locked smart badge tiles.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/store/ — STATE MANAGEMENT (ZUSTAND)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+useUserStore.ts         — Holds the current authenticated Supabase user object and profile; provides setUser, setProfile, clearUser actions; not persisted (cleared on page reload).
+useSettingsStore.ts     — Persisted store for user preferences: preferred language, AI model, theme, mentor mode, and API keys (Gemini/OpenAI/Anthropic/custom); saved to localStorage as "patternlab-settings".
+useChatStore.ts         — Persisted store for multi-session chat history; each session has an id, title (first 5 words of first message), and messages array; supports create/add/update-last/delete session; saved as "chat-storage".
+useProblemStore.ts      — Non-persisted store for the active IDE problem session; holds the current Problem object, code, language, running/submitting flags, test case results, AI review, notes, and revealed hint count; also contains the mockProblem demo data (Two Sum).
+useProgressStore.ts     — Persisted store for the full DSA curriculum progress; tracks points, streak, heatmap, and per-topic level stats (solved/total for Easy/Medium/Hard) and pattern stats for all 18 topics; provides recordProblemSolved (deduplicates by problemId), recordActivity (streak logic), addPoints, syncTopics, and mockPopulate; saved as "progress-storage".
+useVisualizerStore.ts   — Persisted store for the algorithm visualizer; holds active topic (stack/queue/array/etc.), context message from chat, and dry-run step data; also exports helper functions detectDSTopic (keyword-based topic detection from chat text), isExplainRequest, getDryRunSteps (pre-built animations per topic), and DS_LABELS.
+useMemoryStore.ts       — Persisted store for up to 15 AI memory insights extracted from chat responses via [MEMORY: topic | insight] tags; getMemoryContext() builds the memory string injected into Gemini system prompts, now also pulls Brain rating/personality/traits for richer AI context; saved as "patternlab-memory".
+useReminderStore.ts     — Persisted store for spaced-repetition revision scheduling; reminders are keyed by problemId; supports scheduleReminder (sets first revision date based on configured intervals: default 3, 7, 30 days), completeRevision (advances to next interval), skipRevision (snooze 1 day), toggleWeekendMode (shifts dates to weekends only), getTodayTasks (filters due/overdue items); saved as "patternlab_reminders".
+useBrainStore.ts        — Persisted Brain intelligence store; tracks SkillScores per topic, last 50 BrainSessions (verdict, scores, timing, hints used), BrainRating (ELO-style 0–2000 with 6 tiers), BehavioralTraits, RevisionSchedule, and personalitySummary; computeRating() recalculates ELO from sessions using weighted formula + Gaussian percentile simulation; saved as "patternlab-brain".
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/services/ — EXTERNAL SERVICES & API LAYER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+supabaseClient.ts       — Initializes and exports the single Supabase client instance using VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY from .env.
+auth.service.ts         — Thin wrapper over Supabase auth: getUser() returns current session user, signInWithGoogle() triggers OAuth redirect, signOut() logs out, onAuthStateChange() subscribes to auth events.
+ai.service.ts           — Core Gemini AI service for ChatPage; builds the full system prompt using mentor mode instructions, memory context, and strict rules (no full solutions, JSON question format, JSON visualization format, clarifications, suggestions, memory logging); streams responses chunk-by-chunk via sendMessageStream and parses [MEMORY:] tags after completion; supports user API key with .env fallback.
+brain.service.ts        — Brain-specific AI orchestrator; calls Gemini with structured JSON-only prompts for: generateAdaptiveQuestion (creates original DSA problems by topic/difficulty/user weakness profile), evaluateSolution (judges submitted code with mentor feedback, scores, and line annotations), analyzeSkillProfile (behavioral trait + revision + personality analysis from session history), generateLocalRevisionSchedule (computes overdue topics from progress store without AI), and getBrainMemoryContext (summary string for ChatPage enrichment).
+judge0.service.ts       — Code execution service via Judge0 CE API (RapidAPI); submits code + stdin, polls for result with up to 10 retries; supports Python, Java, C++, JavaScript, Go, Rust; falls back to a local simulation engine (heuristic pass/fail based on code structure) if no RapidAPI key is set.
+progress.service.ts     — Supabase database service for progress; getTopicProgress() and updateProgress() read/write to the "progress" table, recordHeatmapActivity() upserts daily solve counts to the "heatmap" table.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/services/ — RANKING (BRAIN)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ranking.service.ts      — Local ranking intelligence engine; computeTopicRankings() scores each curriculum topic from progress + Brain sessions and converts to a simulated Gaussian percentile; computeSmartBadges() checks 7 badge criteria (Optimizer, Debugging Ace, No Lifelines, Streak Master, Hard Slayer, Speed Demon, Elite Tier) against session history; getComparisonStatements() generates human-readable global ranking sentences (e.g., "Better optimization than 82% of users").
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/data/ — STATIC DATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+questionBank.ts         — Large static database of handcrafted DSA problems (39KB); organized by topic (Arrays, Strings, Binary Search, Stack, etc.) with full Problem objects including description, examples, constraints, hints, and test cases; used by the IDE and curriculum to populate fixed problems across all 3 difficulty levels.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+src/utils/ — UTILITIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+(currently empty — utility helpers to be added here as needed)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NAVIGATION MAP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/login        →  LoginPage.tsx          (public, Google OAuth)
+/chat         →  ChatPage.tsx           (AI DSA tutor, default route)
+/brain        →  BrainPage.tsx          (AI intelligence hub, NEW)
+/problem/:id  →  ProblemPage.tsx        (full IDE with test runner)
+/visualizer   →  VisualizerPage.tsx     (algorithm animation lab)
+/progress     →  ProgressPage.tsx       (curriculum tracker)
+/reminder     →  ReminderPage.tsx       (spaced repetition scheduler)
+/profile      →  ProfilePage.tsx        (user stats + heatmap)
+/settings     →  SettingsPage.tsx       (API keys + preferences)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TECH STACK SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+UI Framework    : React 19 + TypeScript
+Build Tool      : Vite 8
+Styling         : TailwindCSS 3 (custom design tokens)
+State           : Zustand 5 (persisted with localStorage)
+Routing         : React Router DOM 7
+AI              : Google Gemini via @google/generative-ai SDK
+Code Execution  : Judge0 CE (RapidAPI) + local simulation fallback
+Database/Auth   : Supabase (PostgreSQL + Google OAuth)
+Code Editor     : Monaco Editor (@monaco-editor/react)
+Charts          : Recharts (radar, doughnut, bar)
+Animation       : Framer Motion
+Markdown        : react-markdown + remark-gfm
+================================================================

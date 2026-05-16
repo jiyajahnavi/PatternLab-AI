@@ -27,16 +27,41 @@ export const useMemoryStore = create<MemoryState>()(
           timestamp: new Date().toISOString()
         };
         set((state) => ({
-          insights: [newItem, ...state.insights].slice(0, 15) // Keep last 15 insights
+          insights: [newItem, ...state.insights].slice(0, 15)
         }));
       },
       clearMemory: () => set({ insights: [] }),
       getMemoryContext: () => {
         const { insights } = get();
-        if (insights.length === 0) return "No prior memory of user preferences.";
-        return insights
-          .map(i => `- [${i.topic}]: ${i.insight}`)
-          .join('\n');
+
+        // Dynamically pull Brain context if available (lazy import to avoid circular deps)
+        let brainContext = '';
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const { useBrainStore } = require('./useBrainStore');
+          const brain = useBrainStore.getState();
+          if (brain.sessions.length > 0) {
+            const tier = brain.rating.tier;
+            const overall = brain.rating.overall;
+            const personality = brain.personalitySummary;
+            const weakTraits = brain.behavioralTraits.filter((t: any) => t.type === 'weakness').map((t: any) => t.trait).join(', ');
+            const strongTraits = brain.behavioralTraits.filter((t: any) => t.type === 'strength').map((t: any) => t.trait).join(', ');
+            brainContext = [
+              `\n[BRAIN INTELLIGENCE PROFILE]`,
+              `- Brain Rating: ${overall} (${tier})`,
+              personality ? `- Personality: ${personality}` : '',
+              strongTraits ? `- Brain-identified strengths: ${strongTraits}` : '',
+              weakTraits ? `- Brain-identified weaknesses: ${weakTraits}` : '',
+              `- Total Brain sessions: ${brain.sessions.length}`,
+            ].filter(Boolean).join('\n');
+          }
+        } catch {}
+
+        const insightLines = insights.length > 0
+          ? insights.map(i => `- [${i.topic}]: ${i.insight}`).join('\n')
+          : 'No prior memory of user preferences.';
+
+        return insightLines + brainContext;
       }
     }),
     { name: 'patternlab-memory' }

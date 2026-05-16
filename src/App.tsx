@@ -10,6 +10,7 @@ import { ProgressPage } from './pages/ProgressPage';
 import { ReminderPage } from './pages/ReminderPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
+import { BrainPage } from './pages/BrainPage';
 import { authService } from './services/auth.service';
 import { useUserStore } from './store/useUserStore';
 
@@ -61,6 +62,7 @@ function App() {
         <Route path="/" element={user ? <Layout /> : <Navigate to="/login" replace />}>
           <Route index element={<Navigate to="/chat" replace />} />
           <Route path="chat" element={<ChatPage />} />
+          <Route path="brain" element={<BrainPage />} />
           <Route path="problem/:id" element={<ProblemPage />} />
           <Route path="visualizer" element={<VisualizerPage />} />
           <Route path="progress" element={<ProgressPage />} />
