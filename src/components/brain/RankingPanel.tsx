@@ -3,6 +3,8 @@ import { Trophy, Medal, Shield, Award } from 'lucide-react';
 import { useBrainStore, getTierInfo, BRAIN_TIERS } from '../../store/useBrainStore';
 import { computeTopicRankings, computeSmartBadges, getComparisonStatements } from '../../services/ranking.service';
 
+// ─── Tier Progress Bar ───────────────────────────────────────────────────────
+
 const TierProgressBar: React.FC<{ rating: number }> = ({ rating }) => {
   const currentTier = getTierInfo(rating);
   const nextTier = BRAIN_TIERS.find(t => t.min > currentTier.max);
@@ -13,8 +15,8 @@ const TierProgressBar: React.FC<{ rating: number }> = ({ rating }) => {
   return (
     <div className="mt-2">
       <div className="flex justify-between text-[9px] text-muted mb-1">
-        <span>{currentTier.tier}</span>
-        <span>{nextTier?.tier ?? 'MAX'}</span>
+        <span className={currentTier.color}>{currentTier.icon} {currentTier.tier}</span>
+        <span>{nextTier ? `${nextTier.icon} ${nextTier.tier}` : '🏆 MAX'}</span>
       </div>
       <div className="h-1.5 bg-border rounded-full overflow-hidden">
         <div
@@ -22,14 +24,80 @@ const TierProgressBar: React.FC<{ rating: number }> = ({ rating }) => {
           style={{ width: `${progress}%` }}
         />
       </div>
-      {nextTier && (
+      {nextTier ? (
         <p className="text-[9px] text-muted mt-1 text-right">
-          {nextTier.min - rating} pts to {nextTier.tier}
+          {nextTier.min - rating} pts to <span className={nextTier.color}>{nextTier.tier}</span>
         </p>
+      ) : (
+        <p className="text-[9px] text-yellow-300 mt-1 text-right font-bold">Maximum tier reached 🏆</p>
       )}
     </div>
   );
 };
+
+// ─── Tier Ladder ─────────────────────────────────────────────────────────────
+
+const TierLadder: React.FC<{ currentRating: number }> = ({ currentRating }) => {
+  const currentTierIndex = BRAIN_TIERS.findIndex(t => currentRating >= t.min && currentRating <= t.max);
+
+  return (
+    <div>
+      <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-3">Tier Ladder</div>
+      <div className="space-y-1">
+        {[...BRAIN_TIERS].reverse().map((tier, reversedIdx) => {
+          const idx = BRAIN_TIERS.length - 1 - reversedIdx;
+          const isCurrent = idx === currentTierIndex;
+          const isUnlocked = currentRating >= tier.min;
+          const isNext = idx === currentTierIndex + 1;
+
+          return (
+            <div
+              key={tier.tier}
+              className={`flex items-center justify-between px-3 py-2 rounded-xl transition-all ${
+                isCurrent
+                  ? `${tier.bg} border border-current/30 scale-[1.02]`
+                  : isUnlocked
+                  ? 'bg-background/30 border border-border/30 opacity-60'
+                  : isNext
+                  ? 'bg-background/20 border border-dashed border-border/40'
+                  : 'bg-transparent border border-transparent opacity-30'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base leading-none">{tier.icon}</span>
+                <div>
+                  <div className={`text-xs font-bold ${isCurrent ? tier.color : isUnlocked ? 'text-primary' : 'text-muted'}`}>
+                    {tier.tier}
+                    {isCurrent && (
+                      <span className="ml-2 text-[9px] font-normal bg-current/20 text-current px-1.5 py-0.5 rounded-full">
+                        YOU
+                      </span>
+                    )}
+                    {isNext && !isCurrent && (
+                      <span className="ml-2 text-[9px] font-normal text-muted/60 px-1.5 py-0.5 rounded-full border border-border/40">
+                        NEXT
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[9px] text-muted">{tier.min}–{tier.max} pts</div>
+                </div>
+              </div>
+              <div className="shrink-0">
+                {isUnlocked ? (
+                  <span className={`text-[10px] font-bold ${tier.color}`}>✓</span>
+                ) : (
+                  <span className="text-[10px] text-muted/40">🔒</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Panel ───────────────────────────────────────────────────────────────
 
 export const RankingPanel: React.FC = () => {
   const { rating, sessions } = useBrainStore();
@@ -51,22 +119,23 @@ export const RankingPanel: React.FC = () => {
         </div>
         <div>
           <h3 className="text-sm font-bold text-primary">Global Ranking</h3>
-          <p className="text-[10px] text-muted">Your intelligent skill-based ranking</p>
+          <p className="text-[10px] text-muted">15-tier skill-based progression system</p>
         </div>
       </div>
 
       {/* Main Rating Card */}
-      <div className="bg-gradient-to-br from-violet-500/15 to-purple-500/5 border border-violet-500/20 rounded-2xl p-5">
+      <div className={`bg-gradient-to-br ${tierInfo.bg.replace('bg-', 'from-').replace('/20', '/20')} to-violet-500/5 border border-current/10 rounded-2xl p-5 ${tierInfo.color}`}>
         <div className="flex items-start justify-between mb-4">
           <div>
-            <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Brain Rating</div>
+            <div className="text-[10px] font-bold opacity-70 uppercase tracking-widest mb-1">Brain Rating</div>
             <div className="text-4xl font-black font-mono text-primary">
               {rating.overall > 0 ? rating.overall : '—'}
             </div>
           </div>
           <div className="text-right">
-            <div className={`text-sm font-bold px-3 py-1 rounded-full border ${tierInfo.bg ?? 'bg-violet-500/10'} ${tierInfo.color}`}>
-              {tierInfo.tier}
+            <div className={`flex items-center gap-1.5 text-lg font-black px-3 py-1.5 rounded-xl border ${tierInfo.bg} ${tierInfo.color} border-current/30`}>
+              <span>{tierInfo.icon}</span>
+              <span className="text-sm">{tierInfo.tier}</span>
             </div>
             {rating.percentileRank > 0 && (
               <div className="text-[10px] text-muted mt-2">
@@ -77,6 +146,9 @@ export const RankingPanel: React.FC = () => {
         </div>
         <TierProgressBar rating={rating.overall} />
       </div>
+
+      {/* Tier Ladder — always visible */}
+      <TierLadder currentRating={rating.overall} />
 
       {/* Skill Scores */}
       {rating.overall > 0 && (
@@ -158,7 +230,6 @@ export const RankingPanel: React.FC = () => {
         ) : (
           <p className="text-[10px] text-muted/60 mb-3 italic">Complete Brain sessions to earn badges.</p>
         )}
-        {/* Locked badges */}
         {lockedBadges.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {lockedBadges.map(b => (

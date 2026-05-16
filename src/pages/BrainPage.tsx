@@ -50,8 +50,9 @@ const BrainHeader: React.FC = () => {
                 PatternLab Brain
               </span>
             </h1>
-            <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${tierInfo.color} ${tierInfo.bg ?? 'bg-violet-500/10'} border-current/30`}>
-              {tierInfo.tier}
+            <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${tierInfo.color} ${tierInfo.bg ?? 'bg-violet-500/10'} border-current/30`}>
+              <span>{tierInfo.icon}</span>
+              <span>{tierInfo.tier}</span>
             </div>
           </div>
           <p className="text-sm text-violet-200/60 max-w-lg">
