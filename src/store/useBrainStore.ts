@@ -40,21 +40,21 @@ export interface BrainRating {
   consistency: number;
   percentileRank: number;
   tier:
-    | 'Beginner'
-    | 'Rookie'
-    | 'Learner'
-    | 'Explorer'
-    | 'Solver'
-    | 'Skilled'
-    | 'Advanced'
-    | 'Pro'
-    | 'Expert'
-    | 'Master'
-    | 'Elite'
-    | 'Grandmaster'
-    | 'Legend'
-    | 'Mythic'
-    | 'Apex';
+  | 'Beginner'
+  | 'Rookie'
+  | 'Learner'
+  | 'Explorer'
+  | 'Solver'
+  | 'Skilled'
+  | 'Advanced'
+  | 'Pro'
+  | 'Expert'
+  | 'Master'
+  | 'Elite'
+  | 'Grandmaster'
+  | 'Legend'
+  | 'Mythic'
+  | 'Apex';
 }
 
 export interface BehavioralTrait {
@@ -88,21 +88,21 @@ export interface BrainReviewResult {
 }
 
 export const BRAIN_TIERS: { min: number; max: number; tier: BrainRating['tier']; color: string; bg: string; icon: string }[] = [
-  { min: 0,    max: 133,  tier: 'Beginner',    icon: '🌱', color: 'text-slate-400',    bg: 'bg-slate-500/20'   },
-  { min: 134,  max: 266,  tier: 'Rookie',      icon: '🔰', color: 'text-zinc-400',     bg: 'bg-zinc-500/20'    },
-  { min: 267,  max: 400,  tier: 'Learner',     icon: '📚', color: 'text-green-400',    bg: 'bg-green-500/20'   },
-  { min: 401,  max: 533,  tier: 'Explorer',    icon: '🧭', color: 'text-teal-400',     bg: 'bg-teal-500/20'    },
-  { min: 534,  max: 666,  tier: 'Solver',      icon: '🧩', color: 'text-cyan-400',     bg: 'bg-cyan-500/20'    },
-  { min: 667,  max: 800,  tier: 'Skilled',     icon: '⚙️', color: 'text-blue-400',     bg: 'bg-blue-500/20'    },
-  { min: 801,  max: 933,  tier: 'Advanced',    icon: '🚀', color: 'text-indigo-400',   bg: 'bg-indigo-500/20'  },
-  { min: 934,  max: 1066, tier: 'Pro',         icon: '💎', color: 'text-violet-400',   bg: 'bg-violet-500/20'  },
-  { min: 1067, max: 1200, tier: 'Expert',      icon: '🏅', color: 'text-purple-400',   bg: 'bg-purple-500/20'  },
-  { min: 1201, max: 1333, tier: 'Master',      icon: '🌟', color: 'text-amber-400',    bg: 'bg-amber-500/20'   },
-  { min: 1334, max: 1466, tier: 'Elite',       icon: '⚡', color: 'text-orange-400',   bg: 'bg-orange-500/20'  },
-  { min: 1467, max: 1600, tier: 'Grandmaster', icon: '👑', color: 'text-rose-400',     bg: 'bg-rose-500/20'    },
-  { min: 1601, max: 1733, tier: 'Legend',      icon: '🔥', color: 'text-red-400',      bg: 'bg-red-500/20'     },
-  { min: 1734, max: 1866, tier: 'Mythic',      icon: '🌌', color: 'text-fuchsia-400',  bg: 'bg-fuchsia-500/20' },
-  { min: 1867, max: 2000, tier: 'Apex',        icon: '🏆', color: 'text-yellow-300',   bg: 'bg-yellow-400/20'  },
+  { min: 0, max: 133, tier: 'Beginner', icon: '🌱', color: 'text-slate-400', bg: 'bg-slate-500/20' },
+  { min: 134, max: 266, tier: 'Rookie', icon: '🔰', color: 'text-zinc-400', bg: 'bg-zinc-500/20' },
+  { min: 267, max: 400, tier: 'Learner', icon: '📚', color: 'text-green-400', bg: 'bg-green-500/20' },
+  { min: 401, max: 533, tier: 'Explorer', icon: '🧭', color: 'text-teal-400', bg: 'bg-teal-500/20' },
+  { min: 534, max: 666, tier: 'Solver', icon: '🧩', color: 'text-cyan-400', bg: 'bg-cyan-500/20' },
+  { min: 667, max: 800, tier: 'Skilled', icon: '⚙️', color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  { min: 801, max: 933, tier: 'Advanced', icon: '🚀', color: 'text-indigo-400', bg: 'bg-indigo-500/20' },
+  { min: 934, max: 1066, tier: 'Pro', icon: '💎', color: 'text-violet-400', bg: 'bg-violet-500/20' },
+  { min: 1067, max: 1200, tier: 'Expert', icon: '🏅', color: 'text-purple-400', bg: 'bg-purple-500/20' },
+  { min: 1201, max: 1333, tier: 'Master', icon: '🌟', color: 'text-amber-400', bg: 'bg-amber-500/20' },
+  { min: 1334, max: 1466, tier: 'Elite', icon: '⚡', color: 'text-orange-400', bg: 'bg-orange-500/20' },
+  { min: 1467, max: 1600, tier: 'Grandmaster', icon: '👑', color: 'text-rose-400', bg: 'bg-rose-500/20' },
+  { min: 1601, max: 1733, tier: 'Legend', icon: '🔥', color: 'text-red-400', bg: 'bg-red-500/20' },
+  { min: 1734, max: 1866, tier: 'Mythic', icon: '🌌', color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/20' },
+  { min: 1867, max: 2000, tier: 'Apex', icon: '🏆', color: 'text-yellow-300', bg: 'bg-yellow-400/20' },
 ];
 
 export function getTierInfo(rating: number) {
@@ -110,11 +110,11 @@ export function getTierInfo(rating: number) {
 }
 
 function erf(x: number): number {
-  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
   const sign = x < 0 ? -1 : 1;
   x = Math.abs(x);
   const t = 1.0 / (1.0 + p * x);
-  const y = 1.0 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
   return sign * y;
 }
 
@@ -134,21 +134,25 @@ function computeRating(sessions: BrainSession[]): BrainRating {
   const consistency = Math.round(correctRate * 100);
   const avgHints = recent.reduce((a, s) => a + s.hintsUsed, 0) / recent.length;
   const hintPenalty = Math.min(avgHints * 5, 25);
-  const diffBonus = recent.reduce((a, s) =>
-    a + (s.difficulty === 'advanced' ? 15 : s.difficulty === 'intermediate' ? 8 : 2), 0) / recent.length;
+  const diffBonus = recent.reduce((a, s) => {
+    if (s.verdict === 'wrong' || s.verdict === 'skipped') return a;
+    return a + (s.difficulty === 'advanced' ? 15 : s.difficulty === 'intermediate' ? 8 : 2);
+  }, 0) / recent.length;
 
   // Raw quality score: 0–100 (roughly)
   const rawQuality = (codeQuality * 0.25) + (optimization * 0.25) + (edgeCases * 0.15) + (consistency * 0.20) + diffBonus - hintPenalty;
 
-  // ── Volume factor: scales 0→1 as sessions grow 1→50 ──────────────────────
-  // sqrt gives a fast-start feel — early sessions matter a lot, diminishing later.
-  // 1 session  → 0.141  → max rating ~283  (Rookie territory)
-  // 3 sessions → 0.245  → max rating ~490  (Explorer territory)
-  // 10 sessions→ 0.447  → max rating ~894  (Advanced territory)
-  // 20 sessions→ 0.632  → max rating ~1265 (Master territory)
-  // 35 sessions→ 0.837  → max rating ~1675 (Grandmaster territory)
-  // 50 sessions→ 1.000  → max rating ~2000 (Apex possible)
-  const volumeFactor = Math.min(1, Math.sqrt(totalSessions / 50));
+
+  // ── Conservative Volume factor ─────────────────────────────────────────────
+  // We now require ~150 sessions to reach 100% of the rating potential.
+  // Using an exponent of 0.8 makes the start very slow, preventing "instant Experts".
+  // 1 session   → ~0.018 → Rating ~36  (Beginner)
+  // 5 sessions  → ~0.065 → Rating ~130 (Still Beginner)
+  // 15 sessions → ~0.158 → Rating ~316 (Learner)
+  // 50 sessions → ~0.415 → Rating ~830 (Advanced)
+  // 100 sessions→ ~0.723 → Rating ~1446(Elite)
+  // 150 sessions→ 1.000  → Apex possible
+  const volumeFactor = Math.min(1, Math.pow(totalSessions / 150, 0.8));
 
   // Final rating = quality × volume ceiling
   const overall = Math.round(Math.min(2000, Math.max(0, rawQuality * 20 * volumeFactor)));
@@ -165,7 +169,6 @@ function computeRating(sessions: BrainSession[]): BrainRating {
   const tier = getTierInfo(overall).tier;
   return { overall, codeQuality, optimization, debugging, consistency, percentileRank, tier };
 }
-
 
 interface BrainState {
   skillScores: Record<string, SkillScore>;

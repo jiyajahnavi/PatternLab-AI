@@ -111,58 +111,6 @@ const BrainHeader: React.FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Session History (compact)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const SessionHistory: React.FC = () => {
-  const { sessions } = useBrainStore();
-  if (sessions.length === 0) return null;
-
-  const verdictConfig = {
-    correct:    { color: 'text-green-400',  dot: 'bg-green-400' },
-    suboptimal: { color: 'text-yellow-400', dot: 'bg-yellow-400' },
-    wrong:      { color: 'text-rose-400',   dot: 'bg-rose-400' },
-    skipped:    { color: 'text-muted',      dot: 'bg-muted' },
-  };
-
-  return (
-    <div className="bg-surface border border-border rounded-2xl p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <History size={14} className="text-violet-400" />
-        <h3 className="text-sm font-bold text-primary">Recent Sessions</h3>
-        <span className="ml-auto text-[10px] text-muted">{sessions.length} total</span>
-      </div>
-      <div className="space-y-2">
-        {sessions.slice(0, 5).map(s => {
-          const vc = verdictConfig[s.verdict];
-          return (
-            <div key={s.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-background/40 border border-border/50 hover:border-border transition-colors">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${vc.dot}`} />
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-primary truncate">{s.questionTitle}</div>
-                <div className="flex gap-3 text-[9px] text-muted mt-0.5">
-                  <span>{s.topic}</span>
-                  <span>·</span>
-                  <span>{s.difficulty}</span>
-                  <span>·</span>
-                  <span>{Math.round(s.timeTaken / 60)}m</span>
-                  <span>·</span>
-                  <span>{s.hintsUsed} hints</span>
-                </div>
-              </div>
-              <div className={`text-[10px] font-bold ${vc.color} shrink-0`}>
-                {s.verdict}
-              </div>
-              <ChevronRight size={12} className="text-muted/40 shrink-0" />
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Main BrainPage
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -186,18 +134,17 @@ export const BrainPage: React.FC = () => {
         <BrainHeader />
 
         {/* Main 2-column grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-          {/* Left column */}
-          <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-6">
+          {/* Left Column (Main Features & Insights) */}
+          <div className="xl:col-span-4 flex flex-col gap-6">
+            <AdaptiveQuestGenPanel />
             <SkillRadarPanel />
             <BehaviorInsightsPanel />
-            <SessionHistory />
           </div>
 
-          {/* Right column */}
-          <div className="flex flex-col gap-6">
+          {/* Right Column (Progression & Results) */}
+          <div className="xl:col-span-8 flex flex-col gap-6">
             <RankingPanel />
-            <AdaptiveQuestGenPanel />
           </div>
         </div>
 

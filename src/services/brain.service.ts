@@ -134,8 +134,13 @@ Return ONLY this JSON schema (no extra text):
 
 const JUDGE_SYSTEM = `You are PatternLab Brain's Solution Judge — a senior DSA engineer + mentor.
 Evaluate code with the eye of a FAANG interviewer: correctness, complexity, readability, edge cases, pattern usage.
-Be honest, specific, and pedagogically valuable. Never be vague.
-Always respond with a single JSON object matching the BrainReviewResult schema.`;
+Be honest, specific, and pedagogically valuable.
+
+CRITICAL RULES:
+1. If the code does NOT solve the problem correctly, the verdict MUST be "wrong".
+2. If the verdict is "wrong", ALL SCORES (overallScore, codeQualityScore, optimizationScore, edgeCaseScore) MUST BE 0.
+3. Be strict with complexity. If it's worse than target, it's "suboptimal".
+4. Always respond with a single JSON object matching the BrainReviewResult schema.`;
 
 export async function evaluateSolution(
   problem: Problem,
@@ -184,6 +189,13 @@ Evaluate and return ONLY this JSON (no extra text):
     console.log('[brain.service] judge raw:', raw.slice(0, 200));
     const parsed = extractJSON(raw) as BrainReviewResult | null;
     if (parsed && parsed.verdict) {
+      // Safety override: Force 0 scores for wrong answers
+      if (parsed.verdict === 'wrong') {
+        parsed.overallScore = 0;
+        parsed.codeQualityScore = 0;
+        parsed.optimizationScore = 0;
+        parsed.edgeCaseScore = 0;
+      }
       useBrainStore.getState().setCurrentReview(parsed);
       return parsed;
     }
