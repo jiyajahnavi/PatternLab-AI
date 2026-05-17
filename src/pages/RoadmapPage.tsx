@@ -5,6 +5,8 @@ import { supabase } from '../services/supabaseClient';
 import { TopicRegion } from '../components/roadmap/TopicRegion';
 import { FloatingPanel } from '../components/roadmap/FloatingPanel';
 import { GapsDrawer } from '../components/roadmap/GapsDrawer';
+import { useProgressStore } from '../store/useProgressStore';
+import { useUserStore } from '../store/useUserStore';
 
 export interface DatabaseTopic {
   id: string;
@@ -19,6 +21,7 @@ export interface DatabasePattern {
   name: string;
   slug: string;
   order_index: number;
+  problems?: { id: string }[];
 }
 
 export const RoadmapPage: React.FC = () => {
@@ -30,6 +33,15 @@ export const RoadmapPage: React.FC = () => {
   const [isGapsOpen, setIsGapsOpen] = useState(false);
   const [topics, setTopics] = useState<DatabaseTopic[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const { fetchUserProgress } = useProgressStore();
+  const { user } = useUserStore();
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProgress(user.id);
+    }
+  }, [user, fetchUserProgress]);
 
   useEffect(() => {
     async function fetchRoadmap() {
@@ -39,7 +51,8 @@ export const RoadmapPage: React.FC = () => {
           .select(`
             id, name, slug, order_index,
             patterns (
-              id, name, slug, order_index
+              id, name, slug, order_index,
+              problems (id)
             )
           `)
           .order('order_index', { ascending: true })
