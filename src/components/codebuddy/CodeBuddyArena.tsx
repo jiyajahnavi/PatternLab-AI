@@ -91,7 +91,8 @@ export const CodeBuddyArena: React.FC = () => {
     
     setTimeout(() => {
       const elapsed = timerDuration - timeRemaining;
-      const passed = testCasesPassed || (code.trim().length > 30 && !code.includes('# Write your competitive solution here') && !code.includes('// Write your competitive solution here'));
+      const cleanCode = code.replace(/\/\*[\s\S]*?\*\/|\/\/.*|#.*/g, "").trim();
+      const passed = testCasesPassed || (cleanCode.length > 10 && code.trim() !== '# Write your competitive solution here' && code.trim() !== '// Write your competitive solution here');
       submitUserSolution(code, elapsed, attempts, hintsUsed, passed);
       setIsSubmitting(false);
     }, 2000);
@@ -147,22 +148,34 @@ export const CodeBuddyArena: React.FC = () => {
           <div className={`p-8 rounded-3xl border relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 ${
             room.winnerId === myParticipantId
               ? 'bg-emerald-500/[0.03] border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.06)]'
-              : 'bg-rose-500/[0.03] border-rose-500/20 shadow-[0_0_50px_rgba(244,63,94,0.06)]'
+              : room.winnerId === 'tie'
+                ? 'bg-amber-500/[0.03] border-amber-500/20 shadow-[0_0_50px_rgba(245,158,11,0.06)]'
+                : 'bg-rose-500/[0.03] border-rose-500/20 shadow-[0_0_50px_rgba(244,63,94,0.06)]'
           }`}>
             <div className="flex items-center gap-6 z-10 text-center md:text-left flex-col md:flex-row">
               <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${
-                room.winnerId === myParticipantId ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                room.winnerId === myParticipantId 
+                  ? 'bg-emerald-500/20 text-emerald-400' 
+                  : room.winnerId === 'tie'
+                    ? 'bg-amber-500/20 text-amber-400'
+                    : 'bg-rose-500/20 text-rose-400'
               }`}>
-                <Trophy size={42} strokeWidth={2} className={room.winnerId === myParticipantId ? 'animate-bounce' : ''} />
+                <Trophy size={42} strokeWidth={2} className={room.winnerId === myParticipantId ? 'animate-bounce' : room.winnerId === 'tie' ? 'animate-pulse' : ''} />
               </div>
               <div>
                 <h1 className="text-3xl font-black tracking-tight text-white">
-                  {room.winnerId === myParticipantId ? 'Battle Victory!' : `${opponentParticipant.name} Wins!`}
+                  {room.winnerId === myParticipantId 
+                    ? 'Battle Victory!' 
+                    : room.winnerId === 'tie'
+                      ? 'Battle Tie!'
+                      : `${opponentParticipant.name} Wins!`}
                 </h1>
                 <p className="text-sm text-muted mt-1 max-w-[480px]">
                   {room.winnerId === myParticipantId 
                     ? 'Excellent job! You successfully out-optimized your opponent and earned +25 CodeBuddy Battle Points!'
-                    : 'A tough battle. Your opponent demonstrated superior optimization and speed. Learn from their solution below!'}
+                    : room.winnerId === 'tie'
+                      ? 'An absolute deadlock! Both you and your opponent scored exactly the same. You earned +10 Battle Points!'
+                      : 'A tough battle. Your opponent demonstrated superior optimization and speed. Learn from their solution below!'}
                 </p>
               </div>
             </div>
@@ -170,7 +183,13 @@ export const CodeBuddyArena: React.FC = () => {
             <div className="flex items-center gap-4 z-10">
               <div className="px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-center">
                 <div className="text-[10px] font-black text-muted uppercase tracking-widest font-mono">BATTLE POINTS</div>
-                <div className="text-2xl font-black text-white font-mono">{room.winnerId === myParticipantId ? '+25' : '+0'}</div>
+                <div className="text-2xl font-black text-white font-mono">
+                  {room.winnerId === myParticipantId 
+                    ? '+25' 
+                    : room.winnerId === 'tie'
+                      ? '+10'
+                      : '+0'}
+                </div>
               </div>
               <button 
                 onClick={leaveRoom}
@@ -182,7 +201,11 @@ export const CodeBuddyArena: React.FC = () => {
 
             {/* Ambient glows */}
             <div className={`absolute top-0 right-0 w-80 h-80 rounded-full blur-[100px] pointer-events-none ${
-              room.winnerId === myParticipantId ? 'bg-emerald-500/10' : 'bg-rose-500/10'
+              room.winnerId === myParticipantId 
+                ? 'bg-emerald-500/10' 
+                : room.winnerId === 'tie'
+                  ? 'bg-amber-500/10'
+                  : 'bg-rose-500/10'
             }`} />
           </div>
 
