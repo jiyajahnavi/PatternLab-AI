@@ -109,3 +109,43 @@ CREATE POLICY "Users can manage messages in their sessions."
       WHERE chat_sessions.id = chat_messages.session_id AND chat_sessions.user_id = auth.uid()
     )
   );
+
+-- 7. Topics Table
+CREATE TABLE public.topics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  order_index INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.topics ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access to topics" ON public.topics FOR SELECT USING (true);
+
+-- 8. Patterns Table
+CREATE TABLE public.patterns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  topic_id UUID REFERENCES public.topics(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  order_index INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.patterns ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access to patterns" ON public.patterns FOR SELECT USING (true);
+
+-- 9. Problems Table
+CREATE TABLE public.problems (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  pattern_id UUID REFERENCES public.patterns(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  url TEXT,
+  order_index INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.problems ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access to problems" ON public.problems FOR SELECT USING (true);

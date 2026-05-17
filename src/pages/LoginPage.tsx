@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { authService } from '../services/auth.service';
+import { useUserStore } from '../store/useUserStore';
 
 export const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { setUser } = useUserStore();
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
@@ -15,6 +17,17 @@ export const LoginPage: React.FC = () => {
       setError(err.message || 'Failed to sign in. Please try again.');
       setIsLoading(false);
     }
+  };
+
+  const handleDeveloperBypass = () => {
+    setUser({
+      id: 'd9b329a1-eb24-4a0b-9dfd-8561d36d4f9b',
+      email: 'developer@patternlab.ai',
+      user_metadata: {
+        full_name: 'PatternLab Developer',
+        avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=developer'
+      }
+    });
   };
 
   return (
@@ -67,6 +80,20 @@ export const LoginPage: React.FC = () => {
               </svg>
             )}
             {isLoading ? 'Redirecting to Google...' : 'Continue with Google'}
+          </button>
+
+          <div className="relative my-6 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <span className="relative bg-surface px-3 text-[10px] text-muted/40 font-mono tracking-wider">DEV MODE</span>
+          </div>
+
+          <button
+            onClick={handleDeveloperBypass}
+            className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-dashed border-accent/30 hover:border-accent/60 bg-accent/5 hover:bg-accent/10 transition-all duration-200 text-xs font-mono text-accent"
+          >
+            Bypass OAuth (Local Mock)
           </button>
 
           {error && (

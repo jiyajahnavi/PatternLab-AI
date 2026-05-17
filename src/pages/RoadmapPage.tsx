@@ -7,6 +7,8 @@ import { FloatingPanel } from '../components/roadmap/FloatingPanel';
 import { GapsDrawer } from '../components/roadmap/GapsDrawer';
 import { useProgressStore } from '../store/useProgressStore';
 import { useUserStore } from '../store/useUserStore';
+import { roadmapData } from '../components/roadmap/data';
+import { QUESTION_BANK } from '../data/questionBank';
 
 export interface DatabaseTopic {
   id: string;
@@ -23,6 +25,41 @@ export interface DatabasePattern {
   order_index: number;
   problems?: { id: string }[];
 }
+
+const getFallbackRoadmap = (): DatabaseTopic[] => {
+  return roadmapData.map((t, tIdx) => {
+    let qbKey = t.title.toLowerCase();
+    if (qbKey === 'array') qbKey = 'arrays';
+    if (qbKey === 'double linked list') qbKey = 'doubly-linked-list';
+    if (qbKey === 'binary search tree') qbKey = 'bst';
+    if (qbKey === 'dynamic programming') qbKey = 'dp';
+    qbKey = qbKey.replace(/\s+/g, '-');
+
+    const topicQuestions = QUESTION_BANK[qbKey] || [];
+
+    return {
+      id: t.id,
+      name: t.title,
+      slug: t.title.toLowerCase().replace(/\s+/g, '-'),
+      order_index: tIdx + 1,
+      patterns: t.patterns.map((p, pIdx) => {
+        const matchingProblems = topicQuestions.filter(q => {
+          const qPat = q.pattern.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const pPat = p.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return qPat === pPat || qPat.includes(pPat) || pPat.includes(qPat);
+        }).map(q => ({ id: q.id }));
+
+        return {
+          id: p.id,
+          name: p.title,
+          slug: p.title.toLowerCase().replace(/\s+/g, '-'),
+          order_index: pIdx + 1,
+          problems: matchingProblems
+        };
+      })
+    };
+  });
+};
 
 export const RoadmapPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,9 +96,16 @@ export const RoadmapPage: React.FC = () => {
           .order('order_index', { foreignTable: 'patterns', ascending: true });
 
         if (error) throw error;
-        setTopics(data as unknown as DatabaseTopic[]);
+        
+        if (data && data.length > 0) {
+          setTopics(data as unknown as DatabaseTopic[]);
+        } else {
+          console.warn('Roadmap data is empty in database, loading beautiful local fallback.');
+          setTopics(getFallbackRoadmap());
+        }
       } catch (err) {
-        console.error('Error fetching roadmap:', err);
+        console.warn('Failed to fetch roadmap from database (using fallback):', err);
+        setTopics(getFallbackRoadmap());
       } finally {
         setLoading(false);
       }

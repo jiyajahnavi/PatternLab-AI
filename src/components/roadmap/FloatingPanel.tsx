@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Network, Lock, BookOpen, ExternalLink, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useProgressStore } from '../../store/useProgressStore';
 import { useUserStore } from '../../store/useUserStore';
+import { QUESTION_BANK } from '../../data/questionBank';
 
 interface FloatingPanelProps {
   isOpen: boolean;
@@ -26,11 +28,34 @@ const DIFFICULTY_STYLES: Record<string, string> = {
   Hard:   'text-rose-400    bg-rose-400/10    border border-rose-400/20',
 };
 
+const getLocalProblemsForPattern = (_patternId: string, patternName: string): DatabaseProblem[] => {
+  const allProblems: any[] = [];
+  Object.values(QUESTION_BANK).forEach(problems => {
+    problems.forEach(p => {
+      const qPat = p.pattern.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const pPat = patternName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (qPat === pPat || qPat.includes(pPat) || pPat.includes(qPat)) {
+        allProblems.push(p);
+      }
+    });
+  });
+
+  return allProblems.map((p, idx) => ({
+    id: p.id,
+    title: p.title,
+    difficulty: p.level === 1 ? 'Easy' : p.level === 2 ? 'Medium' : 'Hard',
+    platform: p.platform || 'LeetCode',
+    url: p.url || `https://leetcode.com/problems/${p.id}/`,
+    order_index: idx + 1
+  }));
+};
+
 export const FloatingPanel: React.FC<FloatingPanelProps> = ({ isOpen, node, onClose }) => {
   const [problems, setProblems]   = useState<DatabaseProblem[]>([]);
   const [loading, setLoading]     = useState(false);
   const { solvedProblems, toggleProblemCompletion } = useProgressStore();
   const { user } = useUserStore();
+  const navigate = useNavigate();
 
   /* ── Escape key ── */
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -61,9 +86,15 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({ isOpen, node, onCl
           .eq('pattern_id', node.id)
           .order('order_index', { ascending: true });
         if (error) throw error;
-        setProblems(data as DatabaseProblem[]);
+        
+        if (data && data.length > 0) {
+          setProblems(data as DatabaseProblem[]);
+        } else {
+          setProblems(getLocalProblemsForPattern(node.id, node.title));
+        }
       } catch (err) {
-        console.error('Error fetching problems:', err);
+        console.warn('Error fetching problems from database, loading fallback question bank:', err);
+        setProblems(getLocalProblemsForPattern(node.id, node.title));
       } finally {
         setLoading(false);
       }
@@ -210,16 +241,20 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({ isOpen, node, onCl
                         initial={{ opacity: 0, x: 16 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.04, duration: 0.25, ease: 'easeOut' }}
+                        onClick={() => navigate(`/problem/${prob.id}`)}
                         className={`group flex items-center gap-3 px-4 py-3.5 rounded-xl
-                                    border transition-all duration-200 ${
+                                    border cursor-pointer transition-all duration-200 ${
                           isSolved
-                            ? 'bg-emerald-500/[0.04] border-emerald-500/20'
-                            : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.12]'
+                            ? 'bg-emerald-500/[0.04] border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.02)]'
+                            : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.12] hover:shadow-[0_0_20px_rgba(124,111,247,0.05)]'
                         }`}
                       >
                         {/* Checkbox */}
                         <button
-                          onClick={() => user && toggleProblemCompletion(user.id, prob.id, !isSolved)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (user) toggleProblemCompletion(user.id, prob.id, !isSolved);
+                          }}
                           className={`shrink-0 w-5 h-5 rounded-md flex items-center justify-center
                                       border transition-all duration-200 ${
                             isSolved
