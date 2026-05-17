@@ -11,6 +11,7 @@ import { ReminderPage } from './pages/ReminderPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { BrainPage } from './pages/BrainPage';
+import { RoadmapPage } from './pages/RoadmapPage';
 import { authService } from './services/auth.service';
 import { useUserStore } from './store/useUserStore';
 
@@ -63,6 +64,7 @@ function App() {
           <Route index element={<Navigate to="/chat" replace />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="brain" element={<BrainPage />} />
+          <Route path="roadmap" element={<RoadmapPage />} />
           <Route path="problem/:id" element={<ProblemPage />} />
           <Route path="visualizer" element={<VisualizerPage />} />
           <Route path="progress" element={<ProgressPage />} />
