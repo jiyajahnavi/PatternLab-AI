@@ -1,10 +1,25 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { roadmapData } from '../components/roadmap/data';
+import { supabase } from '../services/supabaseClient';
 import { TopicRegion } from '../components/roadmap/TopicRegion';
 import { FloatingPanel } from '../components/roadmap/FloatingPanel';
 import { GapsDrawer } from '../components/roadmap/GapsDrawer';
+
+export interface DatabaseTopic {
+  id: string;
+  name: string;
+  slug: string;
+  order_index: number;
+  patterns: DatabasePattern[];
+}
+
+export interface DatabasePattern {
+  id: string;
+  name: string;
+  slug: string;
+  order_index: number;
+}
 
 export const RoadmapPage: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -13,6 +28,33 @@ export const RoadmapPage: React.FC = () => {
   // State for panels
   const [selectedNode, setSelectedNode] = useState<{ id: string; title: string; type: 'pattern' | 'brain' | 'gap' } | null>(null);
   const [isGapsOpen, setIsGapsOpen] = useState(false);
+  const [topics, setTopics] = useState<DatabaseTopic[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRoadmap() {
+      try {
+        const { data, error } = await supabase
+          .from('topics')
+          .select(`
+            id, name, slug, order_index,
+            patterns (
+              id, name, slug, order_index
+            )
+          `)
+          .order('order_index', { ascending: true })
+          .order('order_index', { foreignTable: 'patterns', ascending: true });
+
+        if (error) throw error;
+        setTopics(data as unknown as DatabaseTopic[]);
+      } catch (err) {
+        console.error('Error fetching roadmap:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchRoadmap();
+  }, []);
 
   const handleNodeClick = (id: string, title: string, type: 'pattern' | 'brain' | 'gap') => {
     if (type === 'brain') {
@@ -59,7 +101,11 @@ export const RoadmapPage: React.FC = () => {
             {/* Draw a subtle vertical line connecting topics */}
             <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-accent/0 via-accent/20 to-accent/0 -translate-x-1/2 z-0" />
             
-            {roadmapData.map((topic, index) => (
+            {loading ? (
+              <div className="flex justify-center items-center py-32 text-muted">
+                Loading Roadmap...
+              </div>
+            ) : topics.map((topic, index) => (
               <TopicRegion 
                 key={topic.id} 
                 topic={topic} 

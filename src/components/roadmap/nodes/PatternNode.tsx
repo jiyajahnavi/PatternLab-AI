@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import type { PatternData } from '../data';
+import type { DatabasePattern } from '../../../pages/RoadmapPage';
 import { Network } from 'lucide-react';
 
 interface PatternNodeProps {
-  pattern: PatternData;
+  pattern: DatabasePattern;
   index: number;
   onClick: () => void;
 }
@@ -26,7 +26,7 @@ export const PatternNode: React.FC<PatternNodeProps> = ({ pattern, index, onClic
         <Network size={12} className="text-muted group-hover:text-primary transition-colors" />
       </div>
       <span className="text-sm font-medium text-primary/80 group-hover:text-primary transition-colors whitespace-nowrap">
-        {pattern.title}
+        {pattern.name}
       </span>
     </motion.button>
   );

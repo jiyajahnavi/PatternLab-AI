@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Trophy, Medal, Shield, Award, History as HistoryIcon, ChevronRight } from 'lucide-react';
+import { Trophy, Medal, Shield, Award, History as HistoryIcon } from 'lucide-react';
 import { useBrainStore, getTierInfo, BRAIN_TIERS } from '../../store/useBrainStore';
 import { computeTopicRankings, computeSmartBadges, getComparisonStatements } from '../../services/ranking.service';
 

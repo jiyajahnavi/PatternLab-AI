@@ -404,7 +404,7 @@ export const VisualizerPage: React.FC = () => {
             <motion.div key={topic} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.2 }}>
               {topic === 'stack' && <StackViz data={currentDryStep?.state?.stack || stackData} highlight={currentDryStep?.highlight} />}
               {topic === 'queue' && <QueueViz data={currentDryStep?.state?.queue || queueData} highlight={currentDryStep?.highlight} />}
-              {topic === 'array' && <ArrayViz data={currentDryStep?.state?.nums || currentDryStep?.state?.data || arrayData} highlight={currentDryStep?.highlight} />}
+              {topic === 'array' && <ArrayViz data={currentDryStep?.state?.nums || currentDryStep?.state?.data || arrayData} highlight={currentDryStep?.highlight || [arrayHL]} />}
               {topic === 'linked-list' && <LinkedListViz data={currentDryStep?.state?.nodes || currentDryStep?.state?.data || llData} highlight={currentDryStep?.highlight} />}
               {topic === 'binary-tree' && <BinaryTreeViz data={currentDryStep?.state?.nodes || currentDryStep?.state?.data || treeData} highlight={currentDryStep?.highlight} />}
               {topic === 'graph' && <GraphViz />}

@@ -12,33 +12,17 @@ import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { BrainPage } from './pages/BrainPage';
 import { RoadmapPage } from './pages/RoadmapPage';
-import { authService } from './services/auth.service';
 import { useUserStore } from './store/useUserStore';
 
 function App() {
-  const { user, setUser, clearUser } = useUserStore();
+  const { user, setUser } = useUserStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // On first load, check if the user is already logged in (e.g., after Google redirect)
-    authService.getUser()
-      .then((u) => setUser(u))
-      .catch(() => clearUser())
-      .finally(() => setLoading(false));
-
-    // Subscribe to future auth state changes (login/logout)
-    const { data: subscription } = authService.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-      } else {
-        clearUser();
-      }
-    });
-
-    return () => {
-      subscription?.subscription?.unsubscribe();
-    };
-  }, [setUser, clearUser]);
+    // Bypass authentication for testing
+    setUser({ id: 'test-user', email: 'test@example.com' } as any);
+    setLoading(false);
+  }, [setUser]);
 
   if (loading) {
     return (
