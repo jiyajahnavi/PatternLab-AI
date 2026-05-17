@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Network, Lock, BookOpen, ExternalLink, Check, Zap } from 'lucide-react';
+import { X, Network, Lock, BookOpen, ExternalLink, Check } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { useProgressStore } from '../../store/useProgressStore';
 import { useUserStore } from '../../store/useUserStore';

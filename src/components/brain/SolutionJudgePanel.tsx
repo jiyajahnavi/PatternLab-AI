@@ -84,6 +84,7 @@ export const SolutionJudgePanel: React.FC = () => {
           optimizationScore: review.optimizationScore,
           edgeCaseScore: review.edgeCaseScore,
           timestamp: new Date().toISOString(),
+          fullQuestion: activeProblem,
         });
 
         if (review.verdict === 'correct' || review.verdict === 'suboptimal') {
@@ -110,7 +111,7 @@ export const SolutionJudgePanel: React.FC = () => {
   };
 
   return (
-    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+    <div id="brain-judge-panel" className="bg-surface border border-border rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-2">

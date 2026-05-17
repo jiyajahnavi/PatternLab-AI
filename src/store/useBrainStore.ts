@@ -30,7 +30,9 @@ export interface BrainSession {
   optimizationScore: number;
   edgeCaseScore: number;
   timestamp: string;
+  fullQuestion?: any;
 }
+
 
 export interface BrainRating {
   overall: number;

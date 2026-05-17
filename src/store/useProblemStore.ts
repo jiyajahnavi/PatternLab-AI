@@ -72,9 +72,9 @@ export const useProblemStore = create<ProblemState>((set) => ({
   notes: '',
   revealedHints: 0,
 
-  setProblem: (problem) => set({ 
-    problem, 
-    testCases: problem.testCases.map(tc => ({...tc})),
+  setProblem: (problem) => set({
+    problem,
+    testCases: problem.testCases.map(tc => ({ ...tc })),
     activeTestCaseId: problem.testCases[0]?.id || null,
     revealedHints: 0,
     aiReview: null
@@ -89,8 +89,8 @@ export const useProblemStore = create<ProblemState>((set) => ({
   })),
   setAIReview: (review) => set({ aiReview: review }),
   setNotes: (notes) => set({ notes }),
-  revealHint: () => set((state) => ({ 
-    revealedHints: Math.min(state.revealedHints + 1, state.problem?.hints.length || 0) 
+  revealHint: () => set((state) => ({
+    revealedHints: Math.min(state.revealedHints + 1, state.problem?.hints.length || 0)
   })),
 }));
 

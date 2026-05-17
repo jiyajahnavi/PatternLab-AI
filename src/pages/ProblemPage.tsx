@@ -17,13 +17,13 @@ export const ProblemPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { solvedProblems } = useProgressStore();
-  
-  const { 
-    problem, 
-    setProblem, 
-    code, 
-    language, 
-    testCases, 
+
+  const {
+    problem,
+    setProblem,
+    code,
+    language,
+    testCases,
     updateTestCase,
     setRunning,
     setSubmitting,
@@ -47,10 +47,10 @@ export const ProblemPage: React.FC = () => {
     for (const tc of testCases) {
       try {
         const result = await judge0Service.runCode(code, language, tc.input, tc.expectedOutput);
-        
+
         const actualOutput = result.stdout?.trim() || '';
         const expectedOutput = tc.expectedOutput.trim();
-        
+
         // Robust comparison: remove spaces if it looks like a JSON array/object
         const normalize = (s: string) => s.replace(/\s/g, '');
         const passed = result.status.id === 3 && normalize(actualOutput) === normalize(expectedOutput);
@@ -77,13 +77,13 @@ export const ProblemPage: React.FC = () => {
     for (const tc of testCases) {
       try {
         const result = await judge0Service.runCode(code, language, tc.input, tc.expectedOutput);
-        
+
         const actualOutput = result.stdout?.trim() || '';
         const expectedOutput = tc.expectedOutput.trim();
-        
+
         const normalize = (s: string) => s.replace(/\s/g, '');
         const passed = result.status.id === 3 && normalize(actualOutput) === normalize(expectedOutput);
-        
+
         if (!passed) {
           allPassed = false;
         }
@@ -123,8 +123,8 @@ export const ProblemPage: React.FC = () => {
 
       if (problem) {
         useProgressStore.getState().recordProblemSolved(
-          problem.topic || 'general', 
-          problem.level as 1 | 2 | 3, 
+          problem.topic || 'general',
+          problem.level as 1 | 2 | 3,
           problem.id,
           problem.pattern
         );
@@ -163,11 +163,10 @@ export const ProblemPage: React.FC = () => {
               <CheckCircle2 size={12} /> Solved
             </div>
           )}
-          <div className={`px-2 py-0.5 rounded text-xs border ${
-            problem.level === 1 ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-            problem.level === 2 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-            'bg-accent/10 text-accent border-accent/20'
-          }`}>
+          <div className={`px-2 py-0.5 rounded text-xs border ${problem.level === 1 ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+              problem.level === 2 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                'bg-accent/10 text-accent border-accent/20'
+            }`}>
             {problem.level === 1 ? 'Easy' : problem.level === 2 ? 'Medium' : 'Hard'}
           </div>
         </div>

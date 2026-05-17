@@ -7,11 +7,11 @@ import { ChatPage } from './pages/ChatPage';
 import { ProblemPage } from './pages/ProblemPage';
 import { VisualizerPage } from './pages/VisualizerPage';
 import { ProgressPage } from './pages/ProgressPage';
+import { RoadmapPage } from './pages/RoadmapPage';
 import { ReminderPage } from './pages/ReminderPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
-import { BrainPage } from './pages/BrainPage';
-import { RoadmapPage } from './pages/RoadmapPage';
+
 import { useUserStore } from './store/useUserStore';
 
 function App() {
@@ -43,11 +43,10 @@ function App() {
         {/* Public route */}
         <Route path="/login" element={user ? <Navigate to="/chat" replace /> : <LoginPage />} />
 
-        {/* Protected routes - redirect to /login if not authenticated */}
+        {/* Protected routes */}
         <Route path="/" element={user ? <Layout /> : <Navigate to="/login" replace />}>
           <Route index element={<Navigate to="/chat" replace />} />
           <Route path="chat" element={<ChatPage />} />
-          <Route path="brain" element={<BrainPage />} />
           <Route path="roadmap" element={<RoadmapPage />} />
           <Route path="problem/:id" element={<ProblemPage />} />
           <Route path="visualizer" element={<VisualizerPage />} />

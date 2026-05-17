@@ -17,25 +17,36 @@ function getClient(): GoogleGenerativeAI {
 
 function getModel(client: GoogleGenerativeAI, systemInstruction: string) {
   const settings = useSettingsStore.getState();
-  let modelName = settings.model.startsWith('gemini') ? settings.model : 'gemini-flash-latest';
-  if ((modelName as string) === 'gemini-1.5-flash') modelName = 'gemini-flash-latest';
-  if ((modelName as string) === 'gemini-1.5-pro') modelName = 'gemini-pro-latest';
+  // Standardize on 1.5-flash for reliability on free tier
+  let modelName = 'gemini-1.5-flash';
+  
+  if (settings.model.includes('pro')) modelName = 'gemini-1.5-pro';
+  
   return client.getGenerativeModel({ model: modelName, systemInstruction });
 }
 
 async function callBrain(systemInstruction: string, userPrompt: string): Promise<string> {
-  const client = getClient();
-  const model = getModel(client, systemInstruction);
-  const result = await model.generateContent(userPrompt);
-  return result.response.text();
+  try {
+    const client = getClient();
+    const model = getModel(client, systemInstruction);
+    const result = await model.generateContent(userPrompt);
+    return result.response.text();
+  } catch (error: any) {
+    const msg = error?.message || '';
+    if (msg.includes('429') || msg.includes('quota') || msg.includes('limit')) {
+      throw new Error('Gemini API Quota Exceeded. Please wait about 60 seconds before trying again. (Free tier has limits on request frequency)');
+    }
+    throw error;
+  }
 }
+
 
 function extractJSON(text: string): any {
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fence) {
-    try { return JSON.parse(fence[1].trim()); } catch {}
+    try { return JSON.parse(fence[1].trim()); } catch { }
   }
-  try { return JSON.parse(text.trim()); } catch {}
+  try { return JSON.parse(text.trim()); } catch { }
   return null;
 }
 
