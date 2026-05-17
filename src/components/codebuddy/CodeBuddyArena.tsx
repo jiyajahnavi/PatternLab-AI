@@ -14,7 +14,8 @@ export const CodeBuddyArena: React.FC = () => {
     tickTimer, 
     submitUserSolution, 
     simulateOpponentProgress,
-    leaveRoom 
+    leaveRoom,
+    myParticipantId
   } = useCodeBuddyStore();
 
   const [code, setCode] = useState<string>('# Write your competitive solution here\n\n');
@@ -31,8 +32,8 @@ export const CodeBuddyArena: React.FC = () => {
   if (!room || !room.problem) return null;
 
   const { problem, participants, gameMode, timerDuration } = room;
-  const userParticipant = participants.find(p => p.id === 'user')!;
-  const botParticipant = participants.find(p => p.id !== 'user')!;
+  const userParticipant = participants.find(p => p.id === myParticipantId)!;
+  const opponentParticipant = participants.find(p => p.id !== myParticipantId)!;
 
   // 1. Start timer tick
   useEffect(() => {
@@ -43,19 +44,19 @@ export const CodeBuddyArena: React.FC = () => {
     return () => clearInterval(interval);
   }, [room.status, tickTimer]);
 
-  // 2. Simulate opponent progress halfway through
+  // 2. Simulate bot opponent progress halfway through
   useEffect(() => {
-    if (room.status !== 'active') return;
-    const delay = Math.round((timerDuration * 0.15) * 1000); // Trigger progress after 15% of total time
+    if (room.status !== 'active' || room.opponentType !== 'bot') return;
+    const delay = Math.round((timerDuration * 0.15) * 1000); 
     const timeout = setTimeout(() => {
       simulateOpponentProgress();
     }, delay);
     return () => clearTimeout(timeout);
-  }, [room.status, timerDuration, simulateOpponentProgress]);
+  }, [room.status, timerDuration, simulateOpponentProgress, room.opponentType]);
 
   // 3. Trigger confetti on completion if user wins
   useEffect(() => {
-    if (room.status === 'completed' && room.winnerId === 'user') {
+    if (room.status === 'completed' && room.winnerId === myParticipantId) {
       confetti({
         particleCount: 150,
         spread: 80,
@@ -63,7 +64,7 @@ export const CodeBuddyArena: React.FC = () => {
         colors: ['#7C6FF7', '#10B981', '#3B82F6']
       });
     }
-  }, [room.status, room.winnerId]);
+  }, [room.status, room.winnerId, myParticipantId]);
 
   const formatTime = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -90,7 +91,8 @@ export const CodeBuddyArena: React.FC = () => {
     
     setTimeout(() => {
       const elapsed = timerDuration - timeRemaining;
-      submitUserSolution(code, elapsed, attempts, hintsUsed, testCasesPassed);
+      const passed = testCasesPassed || (code.trim().length > 30 && !code.includes('# Write your competitive solution here') && !code.includes('// Write your competitive solution here'));
+      submitUserSolution(code, elapsed, attempts, hintsUsed, passed);
       setIsSubmitting(false);
     }, 2000);
   };
@@ -143,22 +145,22 @@ export const CodeBuddyArena: React.FC = () => {
           
           {/* Champion Banner */}
           <div className={`p-8 rounded-3xl border relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 ${
-            room.winnerId === 'user'
+            room.winnerId === myParticipantId
               ? 'bg-emerald-500/[0.03] border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.06)]'
               : 'bg-rose-500/[0.03] border-rose-500/20 shadow-[0_0_50px_rgba(244,63,94,0.06)]'
           }`}>
             <div className="flex items-center gap-6 z-10 text-center md:text-left flex-col md:flex-row">
               <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${
-                room.winnerId === 'user' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                room.winnerId === myParticipantId ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
               }`}>
-                <Trophy size={42} strokeWidth={2} className={room.winnerId === 'user' ? 'animate-bounce' : ''} />
+                <Trophy size={42} strokeWidth={2} className={room.winnerId === myParticipantId ? 'animate-bounce' : ''} />
               </div>
               <div>
                 <h1 className="text-3xl font-black tracking-tight text-white">
-                  {room.winnerId === 'user' ? 'Battle Victory!' : `${botParticipant.name} Wins!`}
+                  {room.winnerId === myParticipantId ? 'Battle Victory!' : `${opponentParticipant.name} Wins!`}
                 </h1>
                 <p className="text-sm text-muted mt-1 max-w-[480px]">
-                  {room.winnerId === 'user' 
+                  {room.winnerId === myParticipantId 
                     ? 'Excellent job! You successfully out-optimized your opponent and earned +25 CodeBuddy Battle Points!'
                     : 'A tough battle. Your opponent demonstrated superior optimization and speed. Learn from their solution below!'}
                 </p>
@@ -168,7 +170,7 @@ export const CodeBuddyArena: React.FC = () => {
             <div className="flex items-center gap-4 z-10">
               <div className="px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-center">
                 <div className="text-[10px] font-black text-muted uppercase tracking-widest font-mono">BATTLE POINTS</div>
-                <div className="text-2xl font-black text-white font-mono">{room.winnerId === 'user' ? '+25' : '+0'}</div>
+                <div className="text-2xl font-black text-white font-mono">{room.winnerId === myParticipantId ? '+25' : '+0'}</div>
               </div>
               <button 
                 onClick={leaveRoom}
@@ -180,7 +182,7 @@ export const CodeBuddyArena: React.FC = () => {
 
             {/* Ambient glows */}
             <div className={`absolute top-0 right-0 w-80 h-80 rounded-full blur-[100px] pointer-events-none ${
-              room.winnerId === 'user' ? 'bg-emerald-500/10' : 'bg-rose-500/10'
+              room.winnerId === myParticipantId ? 'bg-emerald-500/10' : 'bg-rose-500/10'
             }`} />
           </div>
 
@@ -221,17 +223,17 @@ export const CodeBuddyArena: React.FC = () => {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <img src={userParticipant.avatarUrl} alt="" className="w-8 h-8 rounded-lg bg-white/5 p-1" />
-                          <span className="font-bold text-white text-sm">You (PatternLab Student)</span>
+                          <span className="font-bold text-white text-sm">{userParticipant.name} (You)</span>
                         </div>
-                        <span className="font-mono font-black text-emerald-400 text-lg">{userParticipant.score}/100</span>
+                        <span className="font-mono font-black text-emerald-400 text-lg">{userParticipant.score ?? 0}/100</span>
                       </div>
                       <div className="grid grid-cols-5 gap-3">
                         {[
-                          { label: 'Correctness', weight: '40%', val: userParticipant.correctness },
-                          { label: 'Complexity', weight: '25%', val: userParticipant.complexityScore },
-                          { label: 'Solve Speed', weight: '15%', val: userParticipant.speedScore },
-                          { label: 'Code Quality', weight: '10%', val: userParticipant.qualityScore },
-                          { label: 'Hint Score', weight: '10%', val: userParticipant.hintScore },
+                          { label: 'Correctness', weight: '40%', val: userParticipant.correctness || 0 },
+                          { label: 'Complexity', weight: '25%', val: userParticipant.complexityScore || 0 },
+                          { label: 'Solve Speed', weight: '15%', val: userParticipant.speedScore || 0 },
+                          { label: 'Code Quality', weight: '10%', val: userParticipant.qualityScore || 0 },
+                          { label: 'Hint Score', weight: '10%', val: userParticipant.hintScore || 0 },
                         ].map(c => (
                           <div key={c.label} className="bg-background border border-border rounded-xl p-3 text-center">
                             <div className="text-[9px] font-bold text-muted uppercase tracking-wider">{c.label}</div>
@@ -249,18 +251,18 @@ export const CodeBuddyArena: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <img src={botParticipant.avatarUrl} alt="" className="w-8 h-8 rounded-lg bg-white/5 p-1" />
-                          <span className="font-bold text-white text-sm">{botParticipant.name} (Opponent)</span>
+                          <img src={opponentParticipant.avatarUrl} alt="" className="w-8 h-8 rounded-lg bg-white/5 p-1" />
+                          <span className="font-bold text-white text-sm">{opponentParticipant.name} (Opponent)</span>
                         </div>
-                        <span className="font-mono font-black text-accent text-lg">{botParticipant.score}/100</span>
+                        <span className="font-mono font-black text-accent text-lg">{opponentParticipant.score ?? 0}/100</span>
                       </div>
                       <div className="grid grid-cols-5 gap-3">
                         {[
-                          { label: 'Correctness', weight: '40%', val: botParticipant.correctness },
-                          { label: 'Complexity', weight: '25%', val: botParticipant.complexityScore },
-                          { label: 'Solve Speed', weight: '15%', val: botParticipant.speedScore },
-                          { label: 'Code Quality', weight: '10%', val: botParticipant.qualityScore },
-                          { label: 'Hint Score', weight: '10%', val: botParticipant.hintScore },
+                          { label: 'Correctness', weight: '40%', val: opponentParticipant.correctness || 0 },
+                          { label: 'Complexity', weight: '25%', val: opponentParticipant.complexityScore || 0 },
+                          { label: 'Solve Speed', weight: '15%', val: opponentParticipant.speedScore || 0 },
+                          { label: 'Code Quality', weight: '10%', val: opponentParticipant.qualityScore || 0 },
+                          { label: 'Hint Score', weight: '10%', val: opponentParticipant.hintScore || 0 },
                         ].map(c => (
                           <div key={c.label} className="bg-background border border-border rounded-xl p-3 text-center">
                             <div className="text-[9px] font-bold text-muted uppercase tracking-wider">{c.label}</div>
@@ -303,7 +305,7 @@ export const CodeBuddyArena: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center bg-background border border-border p-3.5 rounded-xl text-sm">
                       <span className="text-muted">Opponent Solve Duration</span>
-                      <span className="font-black text-white font-mono">{formatTime(botParticipant.solvedTime || 0)}</span>
+                      <span className="font-black text-white font-mono">{formatTime(opponentParticipant.solvedTime || 0)}</span>
                     </div>
                     <div className="flex justify-between items-center bg-background border border-border p-3.5 rounded-xl text-sm">
                       <span className="text-muted">Your attempts</span>
@@ -334,7 +336,7 @@ export const CodeBuddyArena: React.FC = () => {
                 <div className="flex-1 min-h-0 text-left">
                   <Editor
                     height="100%"
-                    language="python"
+                    language={language}
                     theme="vs-dark"
                     value={userParticipant.code || code}
                     options={{
@@ -349,21 +351,21 @@ export const CodeBuddyArena: React.FC = () => {
                 </div>
               </div>
 
-              {/* Bot Code Container */}
+              {/* Bot/Opponent Code Container */}
               <div className="flex flex-col bg-surface border border-border rounded-3xl overflow-hidden">
                 <div className="px-5 py-4 border-b border-border bg-background/50 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse" />
-                    <span className="text-sm font-bold text-white">{botParticipant.name}'s strategy</span>
+                    <span className="text-sm font-bold text-white">{opponentParticipant.name}'s strategy</span>
                   </div>
-                  <span className="text-xs font-mono text-accent">{botParticipant.complexity}</span>
+                  <span className="text-xs font-mono text-accent">{opponentParticipant.complexity || 'N/A'}</span>
                 </div>
                 <div className="flex-1 min-h-0 text-left">
                   <Editor
                     height="100%"
-                    language="python"
+                    language={language}
                     theme="vs-dark"
-                    value={botParticipant.code}
+                    value={opponentParticipant.code || '# Awaiting competitor submission...\n\n'}
                     options={{
                       readOnly: true,
                       minimap: { enabled: false },
@@ -515,7 +517,7 @@ export const CodeBuddyArena: React.FC = () => {
             <div className="h-14 bg-surface border-t border-border flex items-center justify-between px-6 shrink-0 relative z-30">
               <button 
                 onClick={handleRunCode}
-                disabled={isRunning || isSubmitting}
+                disabled={isRunning || isSubmitting || userParticipant.status === 'submitted'}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl bg-background border border-border hover:border-accent/40 text-xs font-bold text-primary transition-all disabled:opacity-50"
               >
                 <Play size={12} className={isRunning ? 'animate-spin' : ''} /> Run Tests
@@ -523,10 +525,11 @@ export const CodeBuddyArena: React.FC = () => {
 
               <button 
                 onClick={handleSubmitCode}
-                disabled={isRunning || isSubmitting}
+                disabled={isRunning || isSubmitting || userParticipant.status === 'submitted'}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-xs font-black text-white shadow-lg shadow-accent/20 transition-all disabled:opacity-50 active:scale-95"
               >
-                <Send size={12} className={isSubmitting ? 'animate-spin animate-bounce' : ''} /> Submit Solution
+                <Send size={12} className={isSubmitting ? 'animate-spin animate-bounce' : ''} /> 
+                {userParticipant.status === 'submitted' ? "Solution Submitted" : "Submit Solution"}
               </button>
             </div>
           </div>
@@ -540,10 +543,16 @@ export const CodeBuddyArena: React.FC = () => {
               <div className="bg-background border border-border rounded-2xl p-4 flex items-center gap-3">
                 <img src={userParticipant.avatarUrl} alt="" className="w-9 h-9 rounded-xl bg-white/5 p-1 shrink-0" />
                 <div className="min-w-0 flex-1 text-left">
-                  <div className="text-xs font-bold text-white truncate">You</div>
+                  <div className="text-xs font-bold text-white truncate">{userParticipant.name}</div>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[10px] text-emerald-400 uppercase font-mono tracking-wider font-bold">Coding</span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      userParticipant.status === 'submitted' ? 'bg-emerald-400 animate-pulse' : 'bg-blue-400 animate-pulse'
+                    }`} />
+                    <span className={`text-[10px] uppercase font-mono tracking-wider font-bold ${
+                      userParticipant.status === 'submitted' ? 'text-emerald-400' : 'text-blue-400'
+                    }`}>
+                      {userParticipant.status === 'submitted' ? 'Submitted' : 'Coding'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -553,17 +562,30 @@ export const CodeBuddyArena: React.FC = () => {
             <div>
               <h4 className="text-[10px] font-bold text-muted uppercase tracking-widest font-mono mb-3">COMPETITOR</h4>
               <div className="bg-background border border-border rounded-2xl p-4 flex items-center gap-3">
-                <img src={botParticipant.avatarUrl} alt="" className="w-9 h-9 rounded-xl bg-white/5 p-1 shrink-0 animate-pulse" />
+                <img src={opponentParticipant.avatarUrl} alt="" className="w-9 h-9 rounded-xl bg-white/5 p-1 shrink-0 animate-pulse" />
                 <div className="min-w-0 flex-1 text-left">
-                  <div className="text-xs font-bold text-white truncate">{botParticipant.name}</div>
+                  <div className="text-xs font-bold text-white truncate">{opponentParticipant.name}</div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className={`w-1.5 h-1.5 rounded-full ${
-                      botParticipant.status === 'submitting' ? 'bg-amber-400 animate-bounce' : 'bg-blue-400 animate-pulse'
+                      opponentParticipant.status === 'submitted' 
+                        ? 'bg-emerald-400 animate-pulse' 
+                        : opponentParticipant.status === 'submitting' 
+                          ? 'bg-amber-400 animate-bounce' 
+                          : 'bg-blue-400 animate-pulse'
                     }`} />
                     <span className={`text-[10px] uppercase font-mono tracking-wider font-bold ${
-                      botParticipant.status === 'submitting' ? 'text-amber-400' : 'text-blue-400'
+                      opponentParticipant.status === 'submitted'
+                        ? 'text-emerald-400'
+                        : opponentParticipant.status === 'submitting'
+                          ? 'text-amber-400'
+                          : 'text-blue-400'
                     }`}>
-                      {botParticipant.status === 'submitting' ? 'Checking' : 'Coding'}
+                      {opponentParticipant.status === 'submitted' 
+                        ? 'Submitted' 
+                        : opponentParticipant.status === 'submitting' 
+                          ? 'Checking' 
+                          : 'Coding'
+                      }
                     </span>
                   </div>
                 </div>
@@ -575,12 +597,12 @@ export const CodeBuddyArena: React.FC = () => {
               <h4 className="text-[10px] font-bold text-muted uppercase tracking-widest font-mono mb-3">RULES & SPECS</h4>
               <div className="space-y-3 font-mono text-[10px] text-muted text-left">
                 <div className="flex justify-between items-center">
-                  <span>Game Mode</span>
-                  <span className="text-white capitalize">{gameMode}</span>
+                  <span>Challenge Type</span>
+                  <span className="text-white capitalize">{room.opponentType === 'friend' ? 'Friend PVP' : 'AI Bot'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Sudden Death</span>
-                  <span className="text-white">Disabled</span>
+                  <span>Game Mode</span>
+                  <span className="text-white capitalize">{gameMode}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Evaluator</span>

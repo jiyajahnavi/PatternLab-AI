@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Problem } from './useProblemStore';
 import { mockProblem } from './useProblemStore';
 import { QUESTION_BANK } from '../data/questionBank';
+import { supabase } from '../services/supabaseClient';
 
 export interface Participant {
   id: string;
@@ -30,6 +31,7 @@ export interface CodeBuddyRoom {
   gameMode: 'standard' | 'speed' | 'sudden_death';
   problem: Problem | null;
   participants: Participant[];
+  opponentType: 'bot' | 'friend';
   winnerId?: string;
   comparisonFeedback?: string;
 }
@@ -47,6 +49,7 @@ export interface CodeBuddyStats {
 }
 
 const STATS_KEY = 'patternlab_codebuddy_stats';
+const ROOM_PREFIX = 'patternlab_cb_room_';
 
 const defaultStats: CodeBuddyStats = {
   totalMatches: 12,
@@ -74,21 +77,171 @@ const saveStats = (stats: CodeBuddyStats) => {
   } catch {}
 };
 
+interface CodeAnalysis {
+  timeComplexity: string;
+  spaceComplexity: string;
+  complexityScore: number;
+  qualityScore: number;
+  approach: string;
+}
+
+const analyzeSubmittedCode = (code: string): CodeAnalysis => {
+  const isDefault = !code || code.trim() === '' || code.includes('# Write your competitive solution here') || code.includes('// Write your competitive solution here');
+  if (isDefault) {
+    return {
+      timeComplexity: "N/A",
+      spaceComplexity: "N/A",
+      complexityScore: 30,
+      qualityScore: 45,
+      approach: "Incomplete / Default code template"
+    };
+  }
+
+  // Strip comments to avoid false complexity triggers
+  const clean = code.replace(/\/\*[\s\S]*?\*\/|\/\/.*|#.*/g, ""); 
+  
+  // 1. Detect Nested Loops (Python indentation or curly braces in C++/Java/JS)
+  let hasNestedLoops = false;
+
+  // Indentation check (suitable for Python)
+  const lines = code.split('\n');
+  let activeLoops: number[] = [];
+  
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    const indent = line.length - line.trimStart().length;
+    
+    // Look for loop starts
+    if (trimmed.startsWith('for ') || trimmed.startsWith('while ') || trimmed.startsWith('for(') || trimmed.startsWith('while(')) {
+      if (activeLoops.some(prevIndent => indent > prevIndent)) {
+        hasNestedLoops = true;
+      }
+      activeLoops.push(indent);
+    } else if (trimmed.length > 0) {
+      // Clear out inner indents that have closed
+      activeLoops = activeLoops.filter(prevIndent => indent > prevIndent);
+    }
+  });
+
+  // Curly brace nesting check (suitable for JS, Java, C++)
+  if (!hasNestedLoops) {
+    let braceLevel = 0;
+    let loopLevels: number[] = [];
+    
+    for (let i = 0; i < clean.length; i++) {
+      if (clean[i] === '{') {
+        braceLevel++;
+      } else if (clean[i] === '}') {
+        braceLevel--;
+        loopLevels = loopLevels.filter(lvl => lvl < braceLevel);
+      }
+      
+      const slice = clean.slice(i, i + 12);
+      if (slice.startsWith('for(') || slice.startsWith('for ') || slice.startsWith('while(') || slice.startsWith('while ')) {
+        if (loopLevels.length > 0) {
+          hasNestedLoops = true;
+        }
+        loopLevels.push(braceLevel);
+      }
+    }
+  }
+
+  // Regex fallback checks for loops
+  if (!hasNestedLoops) {
+    const hasNestedJS = /for\s*\(\s*(let|var|int)\s+(\w+)\s*[\s\S]*?for\s*\(\s*(let|var|int)\s+(\w+)/i.test(clean);
+    const hasNestedPy = /for\s+(\w+)\s+in\s+[\s\S]*?for\s+(\w+)\s+in/i.test(clean);
+    if (hasNestedJS || hasNestedPy) {
+      hasNestedLoops = true;
+    }
+  }
+
+  // 2. Detect Sorting
+  const hasSorting = /sort\(|sorted\(|\.sort/i.test(clean);
+
+  // 3. Detect Map/Set/Hashing
+  const hasHashing = /Map\(|Set\(|new\s+Map|new\s+Set|seen\s*=\s*\{\}|set\(|dict\(|unordered_map|std::map|std::set|unordered_set/i.test(clean) || 
+                     (/\bseen\b/i.test(clean) && !hasNestedLoops);
+
+  // 4. Detect Two Pointers
+  const hasTwoPointers = /while\s+\w+\s*<\s*\w+|left\s*<\s*right|l\s*<\s*r/i.test(clean) && !hasNestedLoops;
+
+  // Compute Complexity Scores
+  let timeComplexity = "O(N) Time";
+  let spaceComplexity = "O(1) Space";
+  let complexityScore = 90;
+  let approach = "Optimal Linear Scan";
+
+  if (hasNestedLoops) {
+    timeComplexity = "O(N²) Time";
+    spaceComplexity = "O(1) Space";
+    complexityScore = 40;
+    approach = "Brute Force Nested Loop Search";
+  } else if (hasSorting) {
+    timeComplexity = "O(N log N) Time";
+    spaceComplexity = hasHashing ? "O(N) Space" : "O(1) Space";
+    complexityScore = 75;
+    approach = "Sorting and Dual Index Sweep";
+  } else if (hasHashing) {
+    timeComplexity = "O(N) Time";
+    spaceComplexity = "O(N) Space";
+    complexityScore = 88;
+    approach = "HashMap Index Cache Strategy";
+  } else if (hasTwoPointers) {
+    timeComplexity = "O(N) Time";
+    spaceComplexity = "O(1) Space";
+    complexityScore = 95;
+    approach = "Two-Pointer Double Index sweep";
+  }
+
+  // 5. Code Quality Check
+  let qualityScore = 80;
+  if (code.includes('//') || code.includes('#') || code.includes('/*')) {
+    qualityScore += 6;
+  }
+  if (/\b(seen|map|set|left|right|mid|pivot|dummy|head|curr|prev)\b/i.test(clean)) {
+    qualityScore += 8;
+  }
+  if (clean.length > 500 && !code.includes('//') && !code.includes('#')) {
+    qualityScore -= 10;
+  }
+  qualityScore = Math.min(98, Math.max(50, qualityScore));
+
+  return {
+    timeComplexity,
+    spaceComplexity,
+    complexityScore,
+    qualityScore,
+    approach
+  };
+};
+
 interface CodeBuddyState {
   room: CodeBuddyRoom | null;
   stats: CodeBuddyStats;
   timeRemaining: number;
-  companionType: 'jerry' | 'devbot' | 'coder-x';
+  companionType: 'jerry' | 'devbot' | 'coder-x' | 'friend';
   isHost: boolean;
+  myParticipantId: 'host-user' | 'friend-user';
   
-  createRoom: (settings: { timer: number; mode: 'standard' | 'speed' | 'sudden_death'; companion: 'jerry' | 'devbot' | 'coder-x'; problemSource: 'specific' | 'random' | 'ai'; topicSlug?: string; problemId?: string }) => void;
-  joinRoom: (code: string) => boolean;
+  createRoom: (settings: { 
+    timer: number; 
+    mode: 'standard' | 'speed' | 'sudden_death'; 
+    companion: 'jerry' | 'devbot' | 'coder-x' | 'friend'; 
+    problemSource: 'specific' | 'random' | 'ai'; 
+    topicSlug?: string; 
+    problemId?: string;
+    opponentType: 'bot' | 'friend';
+    hostName?: string;
+  }) => void;
+  joinRoom: (code: string, friendName?: string) => Promise<boolean>;
   leaveRoom: () => void;
   startMatch: () => void;
   tickTimer: () => void;
   submitUserSolution: (code: string, elapsedSeconds: number, attempts: number, hintsUsed: number, allPassed: boolean) => void;
   simulateOpponentProgress: () => void;
   updateStatsOnWin: (won: boolean, userSpeed: number, userScore: number, topic: string) => void;
+  syncRoomFromStorage: (roomState: CodeBuddyRoom) => void;
+  updateRoomState: (roomUpdates: Partial<CodeBuddyRoom>) => void;
 }
 
 export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
@@ -97,6 +250,7 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
   timeRemaining: 0,
   companionType: 'jerry',
   isHost: true,
+  myParticipantId: 'host-user',
 
   createRoom: (settings) => {
     // 1. Select the problem
@@ -110,22 +264,17 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
         selectedProblem = {
           id: randomQ.id,
           title: randomQ.title,
-          description: randomQ.description || "Solve this algorithmic challenge to verify your mastery of this pattern. Optimize for both time and space complexity constraints.",
+          description: randomQ.description || "Solve this algorithmic challenge to verify your mastery of this pattern.",
           level: randomQ.level || 2,
           pattern: randomQ.pattern || "General",
           topic: settings.topicSlug || "arrays",
-          examples: randomQ.examples || [
-            { input: "nums = [2,7,11,15], target = 9", output: "[0,1]" }
-          ],
-          constraints: randomQ.constraints || ["1 <= nums.length <= 10^5"],
-          hints: randomQ.hints || ["Think about using secondary pointer indices."],
-          testCases: randomQ.testCases || [
-            { id: "t1", input: "[2,7,11,15]\n9", expectedOutput: "[0,1]" }
-          ]
+          examples: randomQ.examples || [],
+          constraints: randomQ.constraints || [],
+          hints: randomQ.hints || [],
+          testCases: randomQ.testCases || []
         };
       }
     } else if (settings.problemSource === 'ai') {
-      // Dynamic AI Generated Problem
       selectedProblem = {
         id: `ai-${Date.now()}`,
         title: "Adaptive Subarray Equilibrium",
@@ -134,12 +283,9 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
         pattern: "Prefix Sum / Sliding Window",
         topic: "arrays",
         examples: [
-          { input: "nums = [1, 2, 3, 3]", output: "3", explanation: "The subarray [1, 2, 3] has sum 6. Elements outside are [3] sum 3. Wait, balanced balance sum constraint is met." }
+          { input: "nums = [1, 2, 3, 3]", output: "3", explanation: "The subarray [1, 2, 3] has sum 6. Elements outside are [3] sum 3." }
         ],
-        constraints: [
-          "1 <= nums.length <= 10^5",
-          "-10^4 <= nums[i] <= 10^4"
-        ],
+        constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
         hints: [
           "Precompute Prefix and Suffix Sums to query arbitrary subarray balance states in O(1).",
           "Use a hashmap tracking sum offsets to optimize window size bounds."
@@ -150,7 +296,6 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
         ]
       };
     } else if (settings.problemId) {
-      // Specific Question
       const allQ = Object.values(QUESTION_BANK).flat();
       const foundQ = allQ.find(q => q.id === settings.problemId);
       if (foundQ) {
@@ -169,18 +314,37 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
       }
     }
 
-    // 2. Set companion details
-    let botName = "Jerry";
-    let botAvatar = "https://api.dicebear.com/7.x/bottts/svg?seed=jerry";
-    if (settings.companion === 'devbot') {
-      botName = "Dev-Bot AI";
-      botAvatar = "https://api.dicebear.com/7.x/bottts/svg?seed=devbot";
-    } else if (settings.companion === 'coder-x') {
-      botName = "Coder-X";
-      botAvatar = "https://api.dicebear.com/7.x/bottts/svg?seed=coderx";
-    }
-
     const roomCode = `CB-${Math.floor(1000 + Math.random() * 9000)}`;
+    
+    // Define participants based on opponentType
+    const hostDisplayName = settings.hostName || 'Host';
+    const initialParticipants: Participant[] = [
+      {
+        id: 'host-user',
+        name: hostDisplayName,
+        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(hostDisplayName)}`,
+        status: 'coding'
+      }
+    ];
+
+    if (settings.opponentType === 'bot') {
+      let botName = "Jerry";
+      let botAvatar = "https://api.dicebear.com/7.x/bottts/svg?seed=jerry";
+      if (settings.companion === 'devbot') {
+        botName = "Dev-Bot AI";
+        botAvatar = "https://api.dicebear.com/7.x/bottts/svg?seed=devbot";
+      } else if (settings.companion === 'coder-x') {
+        botName = "Coder-X";
+        botAvatar = "https://api.dicebear.com/7.x/bottts/svg?seed=coderx";
+      }
+
+      initialParticipants.push({
+        id: 'companion',
+        name: botName,
+        avatarUrl: botAvatar,
+        status: 'coding'
+      });
+    }
 
     const newRoom: CodeBuddyRoom = {
       id: `room-${Date.now()}`,
@@ -189,88 +353,142 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
       timerDuration: settings.timer * 60,
       gameMode: settings.mode,
       problem: selectedProblem,
-      participants: [
-        {
-          id: 'user',
-          name: 'PatternLab Student',
-          avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=student',
-          status: 'coding'
-        },
-        {
-          id: 'companion',
-          name: botName,
-          avatarUrl: botAvatar,
-          status: 'coding'
-        }
-      ]
+      participants: initialParticipants,
+      opponentType: settings.opponentType
     };
+
+    // Save to localStorage if it's a friend room
+    if (settings.opponentType === 'friend') {
+      localStorage.setItem(`${ROOM_PREFIX}${roomCode}`, JSON.stringify(newRoom));
+    }
 
     set({
       room: newRoom,
       timeRemaining: settings.timer * 60,
-      companionType: settings.companion,
-      isHost: true
+      companionType: settings.opponentType === 'friend' ? 'friend' : (settings.companion as any),
+      isHost: true,
+      myParticipantId: 'host-user'
     });
   },
 
-  joinRoom: (code) => {
+  joinRoom: async (code, friendName) => {
     if (!code || code.trim() === '') return false;
+    let cleanCode = code.toUpperCase().trim();
+    if (!cleanCode.startsWith('CB-')) {
+      cleanCode = `CB-${cleanCode}`;
+    }
+    const storageKey = `${ROOM_PREFIX}${cleanCode}`;
+    const stored = localStorage.getItem(storageKey);
+    const friendDisplayName = friendName || 'Friend';
     
-    // Simulate joining an online room code
-    const mockCode = code.toUpperCase();
-    
-    let selectedProblem: Problem = mockProblem;
-    const allQ = Object.values(QUESTION_BANK).flat();
-    if (allQ.length > 0) {
-      const q = allQ[Math.floor(Math.random() * allQ.length)];
-      selectedProblem = {
-        id: q.id,
-        title: q.title,
-        description: q.description || "Challenge Description",
-        level: q.level || 2,
-        pattern: q.pattern || "General",
-        topic: q.topic || "arrays",
-        examples: q.examples || [],
-        constraints: q.constraints || [],
-        hints: q.hints || [],
-        testCases: q.testCases || []
-      };
+    // 1. Fast path: Found in local storage (same browser / tab)
+    if (stored) {
+      try {
+        const parsedRoom: CodeBuddyRoom = JSON.parse(stored);
+        const hasFriend = parsedRoom.participants.some(p => p.id === 'friend-user');
+        if (!hasFriend) {
+          parsedRoom.participants.push({
+            id: 'friend-user',
+            name: friendDisplayName,
+            avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(friendDisplayName)}`,
+            status: 'coding'
+          });
+          localStorage.setItem(storageKey, JSON.stringify(parsedRoom));
+        }
+        set({
+          room: parsedRoom,
+          timeRemaining: parsedRoom.timerDuration,
+          companionType: 'friend',
+          isHost: false,
+          myParticipantId: 'friend-user'
+        });
+        return true;
+      } catch {}
     }
 
-    const joinedRoom: CodeBuddyRoom = {
-      id: `room-joined-${Date.now()}`,
-      code: mockCode,
-      status: 'lobby',
-      timerDuration: 1800, // 30 mins
-      gameMode: 'standard',
-      problem: selectedProblem,
-      participants: [
-        {
-          id: 'user',
-          name: 'PatternLab Student',
-          avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=student',
-          status: 'coding'
-        },
-        {
-          id: 'companion',
-          name: 'Jerry',
-          avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=jerry',
-          status: 'coding'
-        }
-      ]
-    };
+    // 2. Slow path: Look up room via Supabase Realtime Broadcast (cross-browser / cross-incognito / cross-device)
+    try {
+      const channelName = `patternlab_cb_${cleanCode}`;
+      const channel = supabase.channel(channelName, {
+        config: { broadcast: { self: false } }
+      });
 
-    set({
-      room: joinedRoom,
-      timeRemaining: 1800,
-      companionType: 'jerry',
-      isHost: false
-    });
+      let resolved = false;
 
-    return true;
+      return new Promise<boolean>((resolve) => {
+        // Listen for the Host's room state response
+        channel
+          .on('broadcast', { event: 'state_update' }, ({ payload }) => {
+            if (resolved) return;
+            const { roomState } = payload;
+            if (roomState && roomState.code === cleanCode) {
+              resolved = true;
+              
+              // Register ourselves as the friend-user
+              const hasFriend = roomState.participants.some((p: any) => p.id === 'friend-user');
+              if (!hasFriend) {
+                roomState.participants.push({
+                  id: 'friend-user',
+                  name: friendDisplayName,
+                  avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(friendDisplayName)}`,
+                  status: 'coding'
+                });
+              }
+
+              // Save to our tab's local storage
+              localStorage.setItem(storageKey, JSON.stringify(roomState));
+
+              // Broadcast updated room state back to Host
+              channel.send({
+                type: 'broadcast',
+                event: 'state_update',
+                payload: { roomState }
+              });
+
+              // Set store state
+              set({
+                room: roomState,
+                timeRemaining: roomState.timerDuration,
+                companionType: 'friend',
+                isHost: false,
+                myParticipantId: 'friend-user'
+              });
+
+              resolve(true);
+            }
+          })
+          .subscribe();
+
+        // Broadcast query for room state after short subscription delay
+        setTimeout(() => {
+          if (!resolved) {
+            channel.send({
+              type: 'broadcast',
+              event: 'request_state',
+              payload: { requester: 'friend-user' }
+            });
+          }
+        }, 200);
+
+        // Fail query after 3.5 seconds if no response received
+        setTimeout(() => {
+          if (!resolved) {
+            channel.unsubscribe();
+            resolve(false);
+          }
+        }, 3500);
+      });
+    } catch {
+      return false;
+    }
   },
 
   leaveRoom: () => {
+    const { room } = get();
+    if (room && room.opponentType === 'friend') {
+      // Clean up localStorage
+      localStorage.removeItem(`${ROOM_PREFIX}${room.code}`);
+    }
     set({ room: null, timeRemaining: 0 });
   },
 
@@ -278,9 +496,13 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
     const { room } = get();
     if (!room) return;
 
-    set({
-      room: { ...room, status: 'active' }
-    });
+    const activeRoom: CodeBuddyRoom = { ...room, status: 'active' };
+    
+    if (room.opponentType === 'friend') {
+      localStorage.setItem(`${ROOM_PREFIX}${room.code}`, JSON.stringify(activeRoom));
+    }
+
+    set({ room: activeRoom });
   },
 
   tickTimer: () => {
@@ -288,7 +510,6 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
     if (!room || room.status !== 'active') return;
 
     if (timeRemaining <= 1) {
-      // Sudden timer end, trigger force submit
       set({ timeRemaining: 0 });
       get().submitUserSolution("// Incomplete / Timeout solution\n", room.timerDuration, 1, 0, false);
     } else {
@@ -297,14 +518,15 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
   },
 
   submitUserSolution: (code, elapsedSeconds, attempts, hintsUsed, allPassed) => {
-    const { room, companionType } = get();
+    const { room, myParticipantId } = get();
     if (!room) return;
 
-    // 1. Calculate user scores
+    // 1. Analyze and calculate dynamic user scores based on actual code
+    const analysis = analyzeSubmittedCode(code);
     const correctness = allPassed ? 100 : Math.max(0, 100 - (attempts - 1) * 30);
     const speedScore = Math.max(20, Math.round(((room.timerDuration - elapsedSeconds) / room.timerDuration) * 100));
-    const complexityScore = allPassed ? 92 : 30;
-    const qualityScore = allPassed ? 88 : 45;
+    const complexityScore = analysis.complexityScore;
+    const qualityScore = analysis.qualityScore;
     const hintScore = Math.max(10, 100 - hintsUsed * 30);
 
     const userWeighted = Math.round(
@@ -315,114 +537,168 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
       hintScore * 0.10
     );
 
-    // 2. Setup Bot Performance depending on companionType
-    let botCorrectness = 100;
-    let botComplexity = 80;
-    let botQuality = 85;
-    let botSpeed = 75;
-    let botHints = 1;
-    let botTime = Math.round(room.timerDuration * 0.45); // Solves in 45% of time
-    let botApproach = "Used a HashMap to achieve linear time complexity.";
-    let botComplexityLabel = "O(N) Time · O(N) Space";
-    let botCode = `def twoSum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        diff = target - num\n        if diff in seen:\n            return [seen[diff], i]\n        seen[num] = i\n    return []`;
+    // 2. Handle Bot vs Friend Match
+    if (room.opponentType === 'bot') {
+      const companionType = get().companionType;
+      let botCorrectness = 100;
+      let botComplexity = 80;
+      let botQuality = 85;
+      let botSpeed = 75;
+      let botHints = 1;
+      let botTime = Math.round(room.timerDuration * 0.45);
+      let botApproach = "Used a HashMap to achieve linear time complexity.";
+      let botComplexityLabel = "O(N) Time · O(N) Space";
+      let botCode = `def twoSum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        diff = target - num\n        if diff in seen:\n            return [seen[diff], i]\n        seen[num] = i\n    return []`;
 
-    if (companionType === 'devbot') {
-      botCorrectness = 100;
-      botComplexity = 95;
-      botQuality = 92;
-      botSpeed = 90;
-      botHints = 0;
-      botTime = Math.round(room.timerDuration * 0.28); // Blazing fast
-      botApproach = "Fully optimized two-pointer single pass solution.";
-      botComplexityLabel = "O(N) Time · O(1) Space";
-      botCode = `def twoSumOptimal(nums, target):\n    # Dual-Pointer sorted search\n    sorted_nums = sorted(enumerate(nums), key=lambda x: x[1])\n    l, r = 0, len(nums) - 1\n    while l < r:\n        s = sorted_nums[l][1] + sorted_nums[r][1]\n        if s == target:\n            return [sorted_nums[l][0], sorted_nums[r][0]]\n        elif s < target:\n            l += 1\n        else:\n            r -= 1\n    return []`;
-    } else if (companionType === 'coder-x') {
-      botCorrectness = 70;
-      botComplexity = 50;
-      botQuality = 65;
-      botSpeed = 40;
-      botHints = 3;
-      botTime = Math.round(room.timerDuration * 0.85); // Very slow
-      botApproach = "Nested brute-force loop. Lacks computational optimization.";
-      botComplexityLabel = "O(N²) Time · O(1) Space";
-      botCode = `def twoSumBruteForce(nums, target):\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []`;
-    }
-
-    const botHintScore = Math.max(10, 100 - botHints * 30);
-    const botWeighted = Math.round(
-      botCorrectness * 0.4 +
-      botComplexity * 0.25 +
-      botSpeed * 0.15 +
-      botQuality * 0.10 +
-      botHintScore * 0.10
-    );
-
-    // 3. Update Participant list
-    const updatedParticipants = room.participants.map(p => {
-      if (p.id === 'user') {
-        return {
-          ...p,
-          status: 'submitted' as const,
-          score: userWeighted,
-          solvedTime: elapsedSeconds,
-          attempts,
-          hintsUsed,
-          code,
-          correctness,
-          complexityScore,
-          speedScore,
-          qualityScore,
-          hintScore,
-          approach: allPassed ? "Completed with dual index search map" : "Incomplete logic",
-          complexity: allPassed ? "O(N) Time · O(N) Space" : "N/A"
-        };
-      } else {
-        // Companion is submitted too
-        return {
-          ...p,
-          status: 'submitted' as const,
-          score: botWeighted,
-          solvedTime: botTime,
-          attempts: botCorrectness === 100 ? 1 : 3,
-          hintsUsed: botHints,
-          code: botCode,
-          correctness: botCorrectness,
-          complexityScore: botComplexity,
-          speedScore: botSpeed,
-          qualityScore: botQuality,
-          hintScore: botHintScore,
-          approach: botApproach,
-          complexity: botComplexityLabel
-        };
+      if (companionType === 'devbot') {
+        botCorrectness = 100;
+        botComplexity = 95;
+        botQuality = 92;
+        botSpeed = 90;
+        botHints = 0;
+        botTime = Math.round(room.timerDuration * 0.28);
+        botApproach = "Fully optimized two-pointer single pass solution.";
+        botComplexityLabel = "O(N) Time · O(1) Space";
+        botCode = `def twoSumOptimal(nums, target):\n    # Dual-Pointer sorted search\n    sorted_nums = sorted(enumerate(nums), key=lambda x: x[1])\n    l, r = 0, len(nums) - 1\n    while l < r:\n        s = sorted_nums[l][1] + sorted_nums[r][1]\n        if s == target:\n            return [sorted_nums[l][0], sorted_nums[r][0]]\n        elif s < target:\n            l += 1\n        else:\n            r -= 1\n    return []`;
+      } else if (companionType === 'coder-x') {
+        botCorrectness = 70;
+        botComplexity = 50;
+        botQuality = 65;
+        botSpeed = 40;
+        botHints = 3;
+        botTime = Math.round(room.timerDuration * 0.85);
+        botApproach = "Nested brute-force loop.";
+        botComplexityLabel = "O(N²) Time · O(1) Space";
+        botCode = `def twoSumBruteForce(nums, target):\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []`;
       }
-    });
 
-    const userWon = userWeighted >= botWeighted;
-    const winnerId = userWon ? 'user' : 'companion';
+      const botHintScore = Math.max(10, 100 - botHints * 30);
+      const botWeighted = Math.round(
+        botCorrectness * 0.4 +
+        botComplexity * 0.25 +
+        botSpeed * 0.15 +
+        botQuality * 0.10 +
+        botHintScore * 0.10
+      );
 
-    const feedback = `Battle Review:\n- PatternLab Student achieved a total score of ${userWeighted} (Correctness: ${correctness}%, Complexity: ${complexityScore}/100, Speed: ${speedScore}/100).\n- ${room.participants[1].name} finished with a score of ${botWeighted} (Correctness: ${botCorrectness}%, Speed: ${botSpeed}/100).\n\nArchitectural Analysis:\n- Your approach uses hashing which provides excellent linear time execution. ${room.participants[1].name} utilized the optimal strategy: ${botApproach}.\n- You demonstrated high structural cleanliness. Keep optimizing complexity tradeoffs!`;
+      const updatedParticipants = room.participants.map(p => {
+        if (p.id === 'user' || p.id === 'host-user') {
+          return {
+            ...p,
+            status: 'submitted' as const,
+            score: userWeighted,
+            solvedTime: elapsedSeconds,
+            attempts,
+            hintsUsed,
+            code,
+            correctness,
+            complexityScore,
+            speedScore,
+            qualityScore,
+            hintScore,
+            approach: analysis.approach,
+            complexity: `${analysis.timeComplexity} · ${analysis.spaceComplexity}`
+          };
+        } else {
+          return {
+            ...p,
+            status: 'submitted' as const,
+            score: botWeighted,
+            solvedTime: botTime,
+            attempts: botCorrectness === 100 ? 1 : 3,
+            hintsUsed: botHints,
+            code: botCode,
+            correctness: botCorrectness,
+            complexityScore: botComplexity,
+            speedScore: botSpeed,
+            qualityScore: botQuality,
+            hintScore: botHintScore,
+            approach: botApproach,
+            complexity: botComplexityLabel
+          };
+        }
+      });
 
-    const completedRoom: CodeBuddyRoom = {
-      ...room,
-      status: 'completed',
-      participants: updatedParticipants,
-      winnerId,
-      comparisonFeedback: feedback
-    };
+      const userWon = userWeighted >= botWeighted;
+      const winnerId = userWon ? 'host-user' : 'companion';
 
-    set({ room: completedRoom });
+      const feedback = `Battle Review:\n- PatternLab Student achieved a total score of ${userWeighted} (Correctness: ${correctness}%, Complexity: ${complexityScore}/100, Speed: ${speedScore}/100).\n- ${room.participants[1].name} finished with a score of ${botWeighted} (Correctness: ${botCorrectness}%, Speed: ${botSpeed}/100).\n\nArchitectural Analysis:\n- Your approach uses ${analysis.timeComplexity}: ${analysis.approach}.\n- ${room.participants[1].name} utilized the strategy: ${botApproach}.`;
 
-    // Update persistent stats
-    get().updateStatsOnWin(userWon, elapsedSeconds, userWeighted, room.problem?.pattern || 'General');
+      const completedRoom: CodeBuddyRoom = {
+        ...room,
+        status: 'completed',
+        participants: updatedParticipants,
+        winnerId,
+        comparisonFeedback: feedback
+      };
+
+      set({ room: completedRoom });
+      get().updateStatsOnWin(userWon, elapsedSeconds, userWeighted, room.problem?.pattern || 'General');
+    } else {
+      // ════ Friend Multiplayer Submission ════
+      const updatedParticipants = room.participants.map(p => {
+        if (p.id === myParticipantId) {
+          return {
+            ...p,
+            status: 'submitted' as const,
+            score: userWeighted,
+            solvedTime: elapsedSeconds,
+            attempts,
+            hintsUsed,
+            code,
+            correctness,
+            complexityScore,
+            speedScore,
+            qualityScore,
+            hintScore,
+            approach: analysis.approach,
+            complexity: `${analysis.timeComplexity} · ${analysis.spaceComplexity}`
+          };
+        }
+        return p;
+      });
+
+      const otherParticipant = updatedParticipants.find(p => p.id !== myParticipantId)!;
+      let finalWinnerId = room.winnerId;
+      let finalFeedback = room.comparisonFeedback;
+      let status = room.status;
+
+      // Check if both have completed their battles!
+      if (otherParticipant.status === 'submitted') {
+        status = 'completed';
+        const hostP = updatedParticipants.find(p => p.id === 'host-user')!;
+        const friendP = updatedParticipants.find(p => p.id === 'friend-user')!;
+        
+        const hostWon = (hostP.score || 0) >= (friendP.score || 0);
+        finalWinnerId = hostWon ? 'host-user' : 'friend-user';
+
+        finalFeedback = `Multitasking Battle Scorecard:\n- ${hostP.name} finished with a score of ${hostP.score} (Correctness: ${hostP.correctness}%, Complexity: ${hostP.complexityScore}/100, Speed: ${hostP.speedScore}/100).\n- ${friendP.name} completed with a score of ${friendP.score} (Correctness: ${friendP.correctness}%, Complexity: ${friendP.complexityScore}/100, Speed: ${friendP.speedScore}/100).\n\nWinner Declared: ${hostWon ? hostP.name : friendP.name}!`;
+
+        // Update local stats on win
+        const didIWin = myParticipantId === finalWinnerId;
+        get().updateStatsOnWin(didIWin, elapsedSeconds, userWeighted, room.problem?.pattern || 'General');
+      }
+
+      const updatedRoom: CodeBuddyRoom = {
+        ...room,
+        status,
+        participants: updatedParticipants,
+        winnerId: finalWinnerId,
+        comparisonFeedback: finalFeedback
+      };
+
+      // Write updated room to localStorage to notify the friend's browser tab!
+      localStorage.setItem(`${ROOM_PREFIX}${room.code}`, JSON.stringify(updatedRoom));
+      set({ room: updatedRoom });
+    }
   },
 
   simulateOpponentProgress: () => {
-    // Toggle companion status
     const { room } = get();
     if (!room || room.status !== 'active') return;
 
     const updated = room.participants.map(p => {
-      if (p.id === 'companion') {
+      if (p.id !== 'host-user' && p.id !== 'user') {
         return { ...p, status: 'submitting' as const };
       }
       return p;
@@ -438,18 +714,16 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
     if (won) {
       currentStats.wins += 1;
       currentStats.winStreak += 1;
-      currentStats.points += 25; // Battle victory points
+      currentStats.points += 25;
     } else {
       currentStats.losses += 1;
       currentStats.winStreak = 0;
     }
 
-    // Recalculate average speed
     currentStats.averageSpeed = Math.round(
       (currentStats.averageSpeed * (currentStats.totalMatches - 1) + userSpeed) / currentStats.totalMatches
     );
 
-    // Update optimization rating
     currentStats.optimizationRating = Math.round(
       (currentStats.optimizationRating * (currentStats.totalMatches - 1) + userScore) / currentStats.totalMatches
     );
@@ -460,5 +734,29 @@ export const useCodeBuddyStore = create<CodeBuddyState>((set, get) => ({
 
     set({ stats: currentStats });
     saveStats(currentStats);
+  },
+
+  syncRoomFromStorage: (roomState) => {
+    const { room } = get();
+    // Prevent unneeded store state ticks
+    if (!room || JSON.stringify(room) === JSON.stringify(roomState)) return;
+    
+    set({ 
+      room: roomState,
+      timeRemaining: roomState.status === 'active' && room.status === 'lobby' ? roomState.timerDuration : get().timeRemaining
+    });
+  },
+
+  updateRoomState: (roomUpdates) => {
+    const { room } = get();
+    if (!room) return;
+
+    const updatedRoom = { ...room, ...roomUpdates };
+    
+    if (room.opponentType === 'friend') {
+      localStorage.setItem(`${ROOM_PREFIX}${room.code}`, JSON.stringify(updatedRoom));
+    }
+    
+    set({ room: updatedRoom });
   }
 }));
