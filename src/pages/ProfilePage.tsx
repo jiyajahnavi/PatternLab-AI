@@ -3,7 +3,7 @@ import {
   Calendar, MapPin, Edit2, Loader2,
   Flame, Trophy, X, Save, Check,
   Code2, Zap, AtSign, GitBranch,
-  LayoutDashboard, BarChart3
+  LayoutDashboard, BarChart3, Users, Swords
 } from 'lucide-react';
 import { HeatmapCalendar } from '../components/profile/HeatmapCalendar';
 import { LevelBreakdownChart } from '../components/profile/LevelBreakdownChart';
@@ -16,6 +16,7 @@ import { SkillRadarPanel } from '../components/brain/SkillRadarPanel';
 import { GlobalRankingPanel } from '../components/brain/RankingPanel';
 import { useProgressStore } from '../store/useProgressStore';
 import { useUserStore } from '../store/useUserStore';
+import { useCodeBuddyStore } from '../store/useCodeBuddyStore';
 
 interface ProfileData {
   displayName: string;
@@ -44,7 +45,8 @@ export const ProfilePage: React.FC = () => {
   const [profile, setProfile] = useState<ProfileData>(loadProfile);
   const [editDraft, setEditDraft] = useState<ProfileData>(profile);
   const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'codebuddy'>('overview');
+  const { stats: cbStats } = useCodeBuddyStore();
 
   useEffect(() => {
     if (Object.keys(topics).length === 0 || topics['arrays']?.level1.total === 0) {
@@ -155,6 +157,7 @@ export const ProfilePage: React.FC = () => {
           {[
             { id: 'overview',  label: 'Overview',  icon: LayoutDashboard },
             { id: 'analytics', label: 'Analytics',   icon: BarChart3 },
+            { id: 'codebuddy', label: 'CodeBuddy Stats', icon: Users },
           ].map(tab => (
             <button
               key={tab.id}
@@ -257,6 +260,83 @@ export const ProfilePage: React.FC = () => {
               <BarChart3 className="mx-auto text-muted/5 mb-4" size={24} />
               <p className="text-[10px] text-muted/20 font-black uppercase tracking-[0.2em]">Deep Intelligence Engine active</p>
             </div>
+          </div>
+        )}
+
+
+        {activeTab === 'codebuddy' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: 'Cumulative Battle Points', value: `${cbStats.points} pts`, icon: Swords, color: 'text-accent', bg: 'bg-accent/10' },
+                { label: 'Win Ratio (W/L)', value: `${Math.round((cbStats.wins / Math.max(1, cbStats.totalMatches)) * 100)}% (${cbStats.wins}W / ${cbStats.losses}L)`, icon: Trophy, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+                { label: 'Win Streak', value: `${cbStats.winStreak} Matches`, icon: Flame, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+                { label: 'Total Matches', value: `${cbStats.totalMatches} Battles`, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+              ].map(s => (
+                <div key={s.label} className="bg-surface border border-border rounded-2xl p-5 flex items-center gap-4 group hover:border-accent/30 transition-all">
+                  <div className={`w-12 h-12 rounded-xl ${s.bg} flex items-center justify-center ${s.color} shrink-0 group-hover:scale-110 transition-transform`}>
+                    <s.icon size={24} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-muted uppercase tracking-widest">{s.label}</div>
+                    <div className="text-xl font-black text-primary mt-1">{s.value}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Split Details Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Left Column: Behavioral Stats */}
+              <div className="lg:col-span-8 bg-surface border border-border rounded-3xl p-6 text-left">
+                <h3 className="text-lg font-black text-white mb-6">Social Coding Behavior</h3>
+                
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center bg-background border border-border p-4 rounded-2xl text-sm">
+                    <span className="text-muted">Strongest Battle Pattern</span>
+                    <span className="font-bold text-emerald-400">{cbStats.strongestTopic}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center bg-background border border-border p-4 rounded-2xl text-sm">
+                    <span className="text-muted">Weakest Battle Pattern</span>
+                    <span className="font-bold text-rose-400">{cbStats.weakestTopic}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center bg-background border border-border p-4 rounded-2xl text-sm">
+                    <span className="text-muted">Average Solve Speed</span>
+                    <span className="font-mono font-bold text-white">
+                      {Math.floor(cbStats.averageSpeed / 60)}m {cbStats.averageSpeed % 60}s
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-background border border-border p-4 rounded-2xl text-sm">
+                    <span className="text-muted">Global Topic Leaderboard Placement</span>
+                    <span className="font-bold text-accent">Top 8% in Sliding Window battles</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Optimization Gauge */}
+              <div className="lg:col-span-4 bg-surface border border-border rounded-3xl p-6 flex flex-col items-center justify-center text-center">
+                <div className="text-[10px] font-black text-muted uppercase tracking-widest font-mono mb-4">OPTIMIZATION GAUGE</div>
+                
+                <div className="w-32 h-32 rounded-full border-4 border-accent/20 flex items-center justify-center relative mb-4 shadow-[0_0_30px_rgba(124,111,247,0.05)]">
+                  {/* Glowing core */}
+                  <div className="absolute inset-2 rounded-full border border-accent/40 bg-accent/5 flex items-center justify-center flex-col">
+                    <span className="text-2xl font-black text-white font-mono">{cbStats.optimizationRating}%</span>
+                    <span className="text-[9px] text-accent uppercase font-bold tracking-widest font-mono mt-0.5">Rating</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted max-w-[200px] leading-relaxed">
+                  Weighted battle efficiency calculated dynamically from algorithmic complexity, runtime speed, quality checks, and edge-case coverages.
+                </p>
+              </div>
+
+            </div>
+
           </div>
         )}
 

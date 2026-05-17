@@ -1,11 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { MessageSquare, BarChart2, User, Settings, Play, Bell, Map } from 'lucide-react';
+import { MessageSquare, BarChart2, User, Settings, Play, Bell, Map, Swords } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const navItems = [
     { path: '/chat', icon: MessageSquare, label: 'Chat' },
     { path: '/roadmap', icon: Map, label: 'Roadmap' },
+    { path: '/codebuddy', icon: Swords, label: 'CodeBuddy' },
     { path: '/visualizer', icon: Play, label: 'Visualizer' },
     { path: '/progress', icon: BarChart2, label: 'Progress' },
     { path: '/reminder', icon: Bell, label: 'Reminder' },

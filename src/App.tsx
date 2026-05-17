@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage';
 
 import { ChatPage } from './pages/ChatPage';
 import { ProblemPage } from './pages/ProblemPage';
+import { CodeBuddyPage } from './pages/CodeBuddyPage';
 import { VisualizerPage } from './pages/VisualizerPage';
 import { ProgressPage } from './pages/ProgressPage';
 import { RoadmapPage } from './pages/RoadmapPage';
@@ -64,6 +65,7 @@ function App() {
           <Route index element={<Navigate to="/chat" replace />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="roadmap" element={<RoadmapPage />} />
+          <Route path="codebuddy" element={<CodeBuddyPage />} />
           <Route path="problem/:id" element={<ProblemPage />} />
           <Route path="visualizer" element={<VisualizerPage />} />
           <Route path="progress" element={<ProgressPage />} />
