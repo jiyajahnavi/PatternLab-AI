@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { format, subDays } from 'date-fns';
+import { supabase } from '../services/supabaseClient';
 
 export interface LevelStats {
   total: number;
@@ -33,6 +34,8 @@ interface ProgressState {
   recordActivity: () => void;
   recordProblemSolved: (topicId: string, level: 1 | 2 | 3, problemId?: string, pattern?: string) => void;
   mockPopulate: () => void;
+  fetchUserProgress: (userId: string) => Promise<void>;
+  toggleProblemCompletion: (userId: string, problemId: string, completed: boolean) => Promise<void>;
 }
 
 export const normalizeTopicId = (id: string): string => {
@@ -210,6 +213,57 @@ export const useProgressStore = create<ProgressState>()(
         });
         
         get().recordActivity();
+      },
+
+      fetchUserProgress: async (userId: string) => {
+        try {
+          const { data, error } = await supabase
+            .from('user_problem_progress')
+            .select('problem_id')
+            .eq('user_id', userId)
+            .eq('completed', true);
+            
+          if (error) throw error;
+          
+          const problemIds = data.map(d => d.problem_id);
+          set({ solvedProblems: problemIds });
+        } catch (err) {
+          console.error('Error fetching progress:', err);
+        }
+      },
+
+      toggleProblemCompletion: async (userId: string, problemId: string, completed: boolean) => {
+        try {
+          // Optimistic update
+          set((state) => {
+            const newSolved = completed 
+              ? [...new Set([...state.solvedProblems, problemId])]
+              : state.solvedProblems.filter(id => id !== problemId);
+            return { solvedProblems: newSolved };
+          });
+
+          const { error } = await supabase
+            .from('user_problem_progress')
+            .upsert({
+              user_id: userId,
+              problem_id: problemId,
+              completed: completed,
+              completed_at: completed ? new Date().toISOString() : null
+            }, { onConflict: 'user_id, problem_id' });
+
+          if (error) {
+            // Revert on error
+            set((state) => {
+              const newSolved = !completed 
+                ? [...new Set([...state.solvedProblems, problemId])]
+                : state.solvedProblems.filter(id => id !== problemId);
+              return { solvedProblems: newSolved };
+            });
+            throw error;
+          }
+        } catch (err) {
+          console.error('Error toggling problem completion:', err);
+        }
       },
 
       mockPopulate: () => {

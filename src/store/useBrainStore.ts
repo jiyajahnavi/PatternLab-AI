@@ -198,7 +198,7 @@ const DEFAULT_RATING: BrainRating = { overall: 0, codeQuality: 0, optimization: 
 
 export const useBrainStore = create<BrainState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       skillScores: {},
       sessions: [],
       rating: DEFAULT_RATING,
@@ -215,19 +215,22 @@ export const useBrainStore = create<BrainState>()(
         return { sessions: updated, rating: computeRating(updated) };
       }),
 
-      updateSkillScore: (topicId, updates) => set(state => ({
-        skillScores: {
-          ...state.skillScores,
-          [topicId]: {
-            topicId, topicName: topicId, masteryScore: 0, optimizationScore: 0,
-            speedScore: 0, consistencyScore: 0, hintDependency: 0,
-            lastUpdated: new Date().toISOString(),
-            ...(state.skillScores[topicId] || {}),
-            ...updates,
-            lastUpdated: new Date().toISOString()
+      updateSkillScore: (topicId, updates) => set(state => {
+        const existing = state.skillScores[topicId] || {
+          topicId, topicName: topicId, masteryScore: 0, optimizationScore: 0,
+          speedScore: 0, consistencyScore: 0, hintDependency: 0,
+        };
+        return {
+          skillScores: {
+            ...state.skillScores,
+            [topicId]: {
+              ...existing,
+              ...updates,
+              lastUpdated: new Date().toISOString()
+            }
           }
-        }
-      })),
+        };
+      }),
 
       recomputeRating: () => set(state => ({ rating: computeRating(state.sessions) })),
       setBehavioralTraits: (traits) => set({ behavioralTraits: traits }),

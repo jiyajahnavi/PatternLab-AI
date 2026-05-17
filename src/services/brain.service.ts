@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useProgressStore } from '../store/useProgressStore';
-import { useBrainStore, type BrainDifficulty, type BrainReviewResult, type BehavioralTrait, type RevisionItem } from '../store/useBrainStore';
+import { useBrainStore, type BrainDifficulty, type BrainReviewResult, type RevisionItem } from '../store/useBrainStore';
 import type { Problem } from '../store/useProblemStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,8 +51,7 @@ The JSON must exactly match the Problem schema provided.`;
 
 export async function generateAdaptiveQuestion(
   topic: string,
-  difficulty: BrainDifficulty,
-  onStream?: (partial: string) => void
+  difficulty: BrainDifficulty
 ): Promise<Problem | null> {
   const progress = useProgressStore.getState();
   const brain = useBrainStore.getState();

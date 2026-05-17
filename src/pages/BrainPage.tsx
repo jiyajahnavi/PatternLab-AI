@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Brain, Zap, History, Trash2, ChevronRight } from 'lucide-react';
+import { Brain, Zap, Trash2 } from 'lucide-react';
 import { useBrainStore, getTierInfo } from '../store/useBrainStore';
 import { generateLocalRevisionSchedule } from '../services/brain.service';
 import { SkillRadarPanel } from '../components/brain/SkillRadarPanel';
@@ -115,7 +115,7 @@ const BrainHeader: React.FC = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const BrainPage: React.FC = () => {
-  const { setRevisionSchedule, revisionSchedule } = useBrainStore();
+  const { setRevisionSchedule } = useBrainStore();
   const initialized = useRef(false);
 
   useEffect(() => {

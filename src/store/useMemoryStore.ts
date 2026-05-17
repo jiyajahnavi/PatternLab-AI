@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useBrainStore } from './useBrainStore';
 
 interface MemoryItem {
   id: string;
@@ -34,11 +35,9 @@ export const useMemoryStore = create<MemoryState>()(
       getMemoryContext: () => {
         const { insights } = get();
 
-        // Dynamically pull Brain context if available (lazy import to avoid circular deps)
+        // Dynamically pull Brain context if available
         let brainContext = '';
         try {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const { useBrainStore } = require('./useBrainStore');
           const brain = useBrainStore.getState();
           if (brain.sessions.length > 0) {
             const tier = brain.rating.tier;

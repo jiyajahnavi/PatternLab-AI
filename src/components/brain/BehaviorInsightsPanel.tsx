@@ -49,7 +49,7 @@ const RevisionCard: React.FC<{ item: RevisionItem }> = ({ item }) => {
 
 export const BehaviorInsightsPanel: React.FC = () => {
   const { behavioralTraits, revisionSchedule, sessions, personalitySummary,
-          setBehavioralTraits, setRevisionSchedule } = useBrainStore();
+          setRevisionSchedule } = useBrainStore();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Generate local revision schedule on mount

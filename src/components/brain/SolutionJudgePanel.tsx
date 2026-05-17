@@ -34,7 +34,7 @@ export const SolutionJudgePanel: React.FC = () => {
   const [code, setCode] = useState('# Write your solution here\n');
   const [language, setLanguage] = useState('python');
   const [startTime] = useState(Date.now());
-  const [hintsUsed, setHintsUsed] = useState(0);
+  const [hintsUsed] = useState(0);
   const [submissionCount, setSubmissionCount] = useState(0);
   const [customProblem, setCustomProblem] = useState('');
   const [showProblemInput, setShowProblemInput] = useState(false);
