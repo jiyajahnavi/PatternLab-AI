@@ -265,10 +265,15 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({ isOpen, node, onCl
                           {isSolved && <Check size={11} strokeWidth={3} />}
                         </button>
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
+                        {/* Info (clickable) */}
+                        <a
+                          href={prob.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 min-w-0 cursor-pointer"
+                        >
                           <p className={`text-sm font-medium truncate transition-colors ${
-                            isSolved ? 'text-emerald-400/70 line-through' : 'text-white/80 group-hover:text-white'
+                            isSolved ? 'text-emerald-400/70 line-through font-normal' : 'text-white/80 group-hover:text-white'
                           }`}>
                             {prob.title}
                           </p>
@@ -284,7 +289,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({ isOpen, node, onCl
                               <span className="text-[10px] text-white/25">{prob.platform}</span>
                             )}
                           </div>
-                        </div>
+                        </a>
 
                         {/* External link */}
                         {prob.url && (
