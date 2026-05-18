@@ -17,6 +17,7 @@ import { GlobalRankingPanel } from '../components/brain/RankingPanel';
 import { useProgressStore } from '../store/useProgressStore';
 import { useUserStore } from '../store/useUserStore';
 import { useCodeBuddyStore } from '../store/useCodeBuddyStore';
+import { useConnectionsStore } from '../store/useConnectionsStore';
 
 interface ProfileData {
   displayName: string;
@@ -25,16 +26,30 @@ interface ProfileData {
   website: string;
   github: string;
   twitter: string;
+  avatarUrl?: string;
 }
 
 const PROFILE_KEY = 'patternlab_profile';
+
+const AVATAR_CHARACTERS = [
+  { id: 'robot', name: 'Cyber Bot', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Circuit' },
+  { id: 'anime', name: 'Jade Warrior', url: 'https://api.dicebear.com/7.x/lorelei/svg?seed=Jade' },
+  { id: 'notion', name: 'Notionist Felix', url: 'https://api.dicebear.com/7.x/notionists/svg?seed=Felix' },
+  { id: 'cute', name: 'Luna Star', url: 'https://api.dicebear.com/7.x/adventures/svg?seed=Luna' },
+  { id: 'pixel', name: '8-Bit Knight', url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=Vance' },
+  { id: 'trend', name: 'Trendy Nala', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nala' },
+  { id: 'emoji', name: 'Joy Emoji', url: 'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Joy' },
+  { id: 'portrait', name: 'Aria Sketch', url: 'https://api.dicebear.com/7.x/micah/svg?seed=Aria' },
+  { id: 'chibi', name: 'Miniav Leo', url: 'https://api.dicebear.com/7.x/miniavs/svg?seed=Leo' },
+  { id: 'sketch', name: 'Open Milo', url: 'https://api.dicebear.com/7.x/open-peeps/svg?seed=Milo' }
+];
 
 const loadProfile = (): ProfileData => {
   try {
     const stored = localStorage.getItem(PROFILE_KEY);
     if (stored) return JSON.parse(stored);
   } catch {}
-  return { displayName: '', bio: '', location: '', website: '', github: '', twitter: '' };
+  return { displayName: '', bio: '', location: '', website: '', github: '', twitter: '', avatarUrl: '' };
 };
 
 export const ProfilePage: React.FC = () => {
@@ -66,6 +81,20 @@ export const ProfilePage: React.FC = () => {
   const handleSave = () => {
     setProfile(editDraft);
     localStorage.setItem(PROFILE_KEY, JSON.stringify(editDraft));
+
+    // Also update the active user's public profile in our connections store!
+    try {
+      const connectionsStore = useConnectionsStore.getState();
+      if (connectionsStore && connectionsStore.initializeUsername) {
+        const cleanedUsername = user?.email?.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '') || '';
+        if (cleanedUsername) {
+          connectionsStore.initializeUsername(cleanedUsername);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to synchronize connections public profile registry on profile save", e);
+    }
+
     setSaved(true);
     setTimeout(() => { setSaved(false); setShowEditModal(false); }, 1000);
   };
@@ -73,7 +102,7 @@ export const ProfilePage: React.FC = () => {
   const totalProblemsSolved = solvedProblems.length;
   const topicsMastered = Object.values(topics).filter(t => t.fullyCompleted).length;
   const totalTopics = Object.keys(topics).length;
-  const avatarUrl = user?.user_metadata?.avatar_url;
+  const avatarUrl = profile.avatarUrl || user?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.email?.split('@')[0] || 'default'}`;
   const displayName = profile.displayName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
   const avatarChar = displayName.charAt(0).toUpperCase();
 
@@ -107,15 +136,20 @@ export const ProfilePage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 md:px-12 -mt-20 relative z-10">
           <div className="flex flex-col md:flex-row gap-8 items-end">
             {/* Avatar */}
-            <div className="relative group">
-              <div className="w-40 h-40 rounded-3xl ring-8 ring-background bg-gradient-to-br from-violet-600 to-blue-600 p-1 shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]">
+            <div className="relative group cursor-pointer" onClick={() => { setEditDraft(profile); setShowEditModal(true); }}>
+              <div className="w-40 h-40 rounded-3xl ring-8 ring-background bg-gradient-to-br from-violet-600 to-blue-600 p-1 shadow-2xl transition-transform duration-500 group-hover:scale-[1.02] relative overflow-hidden">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={displayName} className="w-full h-full rounded-[22px] object-cover" />
+                  <img src={avatarUrl} alt={displayName} className="w-full h-full rounded-[22px] object-cover bg-surface" />
                 ) : (
                   <div className="w-full h-full rounded-[22px] bg-surface flex items-center justify-center text-5xl font-black text-violet-500">
                     {avatarChar}
                   </div>
                 )}
+                {/* Camera hover edit overlay */}
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] rounded-[22px] opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity duration-300 gap-1.5">
+                  <Edit2 size={20} className="text-violet-400 animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Edit Photo</span>
+                </div>
               </div>
               <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-green-500 border-4 border-background shadow-lg" />
             </div>
@@ -356,6 +390,59 @@ export const ProfilePage: React.FC = () => {
 
             <div className="px-8 py-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 gap-6">
+                {/* Avatar Selection */}
+                <div>
+                  <label className="text-xs font-black text-muted uppercase tracking-widest block mb-3 text-violet-400">Choose Profile Character</label>
+                  
+                  {/* Current Active Preview */}
+                  <div className="flex items-center gap-5 p-4 bg-background/50 border border-border/60 rounded-2xl mb-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-blue-600 p-0.5 shadow-lg overflow-hidden shrink-0">
+                      <img 
+                        src={editDraft.avatarUrl || avatarUrl} 
+                        alt="Selected Avatar" 
+                        className="w-full h-full rounded-[14px] object-cover bg-surface animate-in fade-in zoom-in-75 duration-300" 
+                      />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white">Active Avatar Character</div>
+                      <p className="text-[10px] text-muted mt-1 leading-relaxed">
+                        Select one of the handpicked illustrative characters below to represent your developer profile across CodeBuddy challenges and invites!
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Grid of Avatars */}
+                  <div className="grid grid-cols-5 gap-2.5">
+                    {AVATAR_CHARACTERS.map((char) => {
+                      const isSelected = editDraft.avatarUrl === char.url || (!editDraft.avatarUrl && avatarUrl === char.url);
+                      return (
+                        <button
+                          key={char.id}
+                          type="button"
+                          onClick={() => setEditDraft(d => ({ ...d, avatarUrl: char.url }))}
+                          className={`relative aspect-square rounded-xl p-1 bg-background border transition-all duration-300 hover:scale-105 active:scale-95 group overflow-hidden ${
+                            isSelected 
+                              ? 'border-violet-500 ring-2 ring-violet-500/20 bg-violet-500/5' 
+                              : 'border-border/60 hover:border-violet-500/40 hover:bg-white/5'
+                          }`}
+                          title={char.name}
+                        >
+                          <img 
+                            src={char.url} 
+                            alt={char.name} 
+                            className="w-full h-full rounded-lg object-cover bg-surface transition-transform duration-300 group-hover:scale-110" 
+                          />
+                          {isSelected && (
+                            <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-violet-600 flex items-center justify-center text-[7px] text-white border border-background shadow">
+                              <Check size={8} strokeWidth={4} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div>
                   <label className="text-xs font-black text-muted uppercase tracking-widest block mb-2 text-violet-400">Public Identity</label>
                   <div className="space-y-4">
