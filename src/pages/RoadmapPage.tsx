@@ -83,22 +83,46 @@ export const RoadmapPage: React.FC = () => {
   useEffect(() => {
     async function fetchRoadmap() {
       try {
-        const { data, error } = await supabase
+        // Fetch topics and nested patterns (flat join)
+        const { data: topicsData, error: topicsError } = await supabase
           .from('topics')
           .select(`
             id, name, slug, order_index,
             patterns (
-              id, name, slug, order_index,
-              problems (id)
+              id, name, slug, order_index
             )
           `)
           .order('order_index', { ascending: true })
           .order('order_index', { foreignTable: 'patterns', ascending: true });
 
-        if (error) throw error;
+        if (topicsError) throw topicsError;
         
-        if (data && data.length > 0) {
-          setTopics(data as unknown as DatabaseTopic[]);
+        // Fetch all problems' id and pattern_id in a separate flat query to be extremely robust against nested select cache bugs
+        const { data: problemsData, error: problemsError } = await supabase
+          .from('problems')
+          .select('id, pattern_id');
+          
+        if (problemsError) throw problemsError;
+
+        if (topicsData && topicsData.length > 0) {
+          // Map problems by pattern_id in memory
+          const problemsMap = (problemsData || []).reduce((acc, prob) => {
+            if (!prob.pattern_id) return acc;
+            if (!acc[prob.pattern_id]) acc[prob.pattern_id] = [];
+            acc[prob.pattern_id].push({ id: prob.id });
+            return acc;
+          }, {} as Record<string, { id: string }[]>);
+
+          // Enrich patterns with their mapped problems
+          const enrichedTopics = topicsData.map((topic: any) => ({
+            ...topic,
+            patterns: (topic.patterns || []).map((pattern: any) => ({
+              ...pattern,
+              problems: problemsMap[pattern.id] || []
+            }))
+          }));
+
+          setTopics(enrichedTopics as DatabaseTopic[]);
         } else {
           console.warn('Roadmap data is empty in database, loading beautiful local fallback.');
           setTopics(getFallbackRoadmap());
