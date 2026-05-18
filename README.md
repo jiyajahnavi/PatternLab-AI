@@ -95,12 +95,58 @@ A competitive coding social network allowing students to interact, track, and ch
 - **Social Feed & Presence**: Tracks active developer status (Online/Offline) and achievements dynamically (e.g. *"Jerry solved Two Sum using an optimal Two-Pointer sweep! 🚀"*).
 - **Privacy Dashboard**: Allows users to selectively toggle profile visibility, activity feed broadcasts, profile comparison permissions, PvP battle invite allowance, and online presence status.
 
-### 4. 📊 Side-by-Side Profile Comparer
+### 4. 🗺️ 18-Level Structured DSA Learning Roadmap
+
+PatternLab is built around an intensive, pattern-focused DSA curriculum that guides developers from foundational concepts to highly complex abstract algorithms. Completing problems inside these levels directly feeds into your global developer rating.
+
+| Level | Topic | Core Algorithmic Patterns Covered |
+| :---: | :--- | :--- |
+| **1** | **Arrays** | Two Pointer, Sliding Window, Prefix Sum, Kadane’s Algorithm |
+| **2** | **Strings** | Two Pointer (Palindrome), Sliding Window (String Parsing), Expand Around Center |
+| **3** | **Binary Search** | Classic Boundary Search, Lower / Upper Bound, Binary Search on Answers, 2D Matrix Search |
+| **4** | **Stack** | Monotonic Stack, Expression Evaluation, Stack Simulation, Parenthesis Scoring, Stack-Based Designs |
+| **5** | **Queue** | Circular Queues, Task Scheduling, Double-Ended Queues (Deques), Sliding Window Maximums |
+| **6** | **Recursion** | Linear/Non-Linear Recursion, Divide & Conquer, Subsequences, Recursive List/Stack operations |
+| **7** | **Linked List** | Basic Operations, Fast & Slow Pointers, Reversal Patterns, Merge/Sort Operations |
+| **8** | **Doubly Linked List** | Doubly Linked Node manipulation, DLL Reordering, Deletion & Insertion algorithms |
+| **9** | **HashMap** | Frequency Maps, prefix sum indexes, hash lookups, sliding windows with HashMaps |
+| **10**| **Heap / Priority Queue** | Top-K Elements, Merge K Sorted Lists, Sliding Window Heap trackers, Huffman Coding |
+| **11**| **Tree** | DFS/BFS tree traversals, Lowest Common Ancestor (LCA), tree serialization and reconstructions |
+| **12**| **Binary Search Tree** | BST Operations (Insertion, Deletion), Range queries, LCA queries |
+| **13**| **Graph** | BFS/DFS traversals, Topological Sort, Union-Find (MST), Dijkstra, Bellman-Ford, Floyd-Warshall |
+| **14**| **Backtracking** | Choice-Based, Constraint-Based, Grid/Pathfinding, sequence generation decision trees |
+| **15**| **Greedy** | Interval Scheduling, reachability analysis, greedy fractional choices |
+| **16**| **Dynamic Programming** | 1D/2D Matrix DP, Knapsack structures, Longest Common Subsequences, Interval DP |
+| **17**| **Trie** | Prefix Tries, Word Break segmentations, Bitwise Trie / Max XOR pairs |
+| **18**| **Bit Manipulation** | Basic operations, subsets using Bitmasks, Advanced XOR relationships |
+
+### 5. 📊 Interactive Algorithm Visualizer
+
+PatternLab includes an active algorithm visualizer that maps computational loops onto reactive UI nodes, making complex data structures easier to understand:
+
+- **Steppable Execution Modes**: Supports stepping forward or backward through operations on **Stack, Queue, Array / HashMap, Linked List, Binary Tree, Graph, Binary Search, Sorting, and Recursion**.
+- **Real-Time Visual State**: Highlights active indices, tracks pointer coordinates (e.g. `lo`, `hi`, `mid`, `left`, `right`), maps tree/graph node visits, and traces matrix paths.
+- **Pseudocode Tracker**: Underneath the visualization, a code pane highlights the matching line of pseudocode as the visualizer steps through, demonstrating how logic translates to structure.
+- **Dynamic Context**: Synchronizes directly with active problems and chatbot recommendations to visualize custom inputs in real-time.
+
+### 6. 📅 Revision Center: Spaced Repetition (SRS)
+
+To ensure long-term retention of algorithmic patterns, PatternLab uses an automated spaced repetition scheduler based on the **Leitner System**:
+
+- **Interval Boxes**: Problems are placed into review lists scheduled at optimal intervals:
+  - **Interval 1**: 3 Days
+  - **Interval 2**: 7 Days
+  - **Interval 3**: 30 Days
+- **"Weekend Mode"**: Busy during the week? Toggle **Weekend Mode** in the settings. This automatically reschedules any weekday revisions to the coming Saturday/Sunday, allowing students to batch reviews on weekends without breaking streaks or heatmap stats.
+- **Resilient Streak Heatmap**: An activity heatmap logs daily consistency, keeping users motivated to retain solved problems.
+- **Snoozing**: Users can choose to snooze a problem to the next day if they need more practice.
+
+### 7. 📊 Side-by-Side Profile Comparer
 A dual-metric visual comparison console comparing 15 distinct developer capabilities:
 - **Relative Comparison Meters**: Sleek visual bars display relative metric differentials between the user and any connection, awarding a gold crown badge (`👑`) to the metric leader.
 - **Gemini AI Analysis**: Integrates deep-dive cognitive diagnostics comparing the developers' structural architectures, time/space complexities, and debugging speeds. If no Gemini API Key is configured, the engine defaults to a robust deterministic engineering compiler to provide detailed insights immediately.
 
-### 5. 🎨 Profile Avatar Customization Studio
+### 8. 🎨 Profile Avatar Customization Studio
 Allows students to craft premium avatars representational of their competitive developer identities:
 - **Presetted Avatars**: Curated, beautifully stylized character illustrations.
 - **Avatar Studio (Ghibli Mode)**: A dynamic SVG-drawing engine allowing students to configure custom Ghibli-inspired details (skin tones, hair styles, clothing, eyewear, accessories, and colors) compiled on the fly.
