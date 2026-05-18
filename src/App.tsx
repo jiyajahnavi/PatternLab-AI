@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Layout } from './Layout';
 import { LoginPage } from './pages/LoginPage';
 
@@ -12,9 +12,29 @@ import { RoadmapPage } from './pages/RoadmapPage';
 import { ReminderPage } from './pages/ReminderPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
+import { ConnectPage } from './pages/ConnectPage';
 
 import { authService } from './services/auth.service';
 import { useUserStore } from './store/useUserStore';
+
+const LoginRoute = () => {
+  const { user } = useUserStore();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/chat';
+
+  return user ? <Navigate to={redirect} replace /> : <LoginPage />;
+};
+
+const ProtectedRoute = () => {
+  const { user } = useUserStore();
+  const location = useLocation();
+
+  return user ? (
+    <Layout />
+  ) : (
+    <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />
+  );
+};
 
 function App() {
   const { user, setUser, clearUser } = useUserStore();
@@ -57,11 +77,11 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public route */}
-        <Route path="/login" element={user ? <Navigate to="/chat" replace /> : <LoginPage />} />
+        {/* Public routes */}
+        <Route path="/login" element={<LoginRoute />} />
 
         {/* Protected routes */}
-        <Route path="/" element={user ? <Layout /> : <Navigate to="/login" replace />}>
+        <Route path="/" element={<ProtectedRoute />}>
           <Route index element={<Navigate to="/chat" replace />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="roadmap" element={<RoadmapPage />} />
@@ -72,6 +92,7 @@ function App() {
           <Route path="reminder" element={<ReminderPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="connect/:username" element={<ConnectPage />} />
         </Route>
 
         {/* Catch-all */}

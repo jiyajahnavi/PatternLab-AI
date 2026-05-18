@@ -8,6 +8,7 @@ import { useCodeBuddyStore } from '../store/useCodeBuddyStore';
 import { useUserStore } from '../store/useUserStore';
 import { CodeBuddyArena } from '../components/codebuddy/CodeBuddyArena';
 import { useCodeBuddySync } from '../hooks/useCodeBuddySync';
+import { ConnectionsPanel } from '../components/codebuddy/ConnectionsPanel';
 
 export const CodeBuddyPage: React.FC = () => {
   // Activate real-time cross-tab synchronization
@@ -25,6 +26,7 @@ export const CodeBuddyPage: React.FC = () => {
     myParticipantId
   } = useCodeBuddyStore();
 
+  const [activeSubTab, setActiveSubTab] = useState<'arena' | 'connections'>('arena');
   const [lobbyTab, setLobbyTab] = useState<'create' | 'join'>('create');
   const [opponentType, setOpponentType] = useState<'bot' | 'friend'>('bot');
   const [timer, setTimer] = useState<number>(30);
@@ -117,13 +119,49 @@ export const CodeBuddyPage: React.FC = () => {
         </p>
       </div>
 
+      {!room && (
+        <div className="flex gap-2 p-1 bg-surface border border-border rounded-2xl mb-6 shadow-inner max-w-xs w-full mx-auto shrink-0 z-10">
+          <button
+            onClick={() => setActiveSubTab('arena')}
+            className={`flex-1 py-1.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+              activeSubTab === 'arena'
+                ? 'bg-accent text-white shadow-lg shadow-accent/20'
+                : 'text-muted hover:text-white'
+            }`}
+          >
+            <Swords size={12} />
+            <span>PVP Arena</span>
+          </button>
+          <button
+            onClick={() => setActiveSubTab('connections')}
+            className={`flex-1 py-1.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+              activeSubTab === 'connections'
+                ? 'bg-accent text-white shadow-lg shadow-accent/20'
+                : 'text-muted hover:text-white'
+            }`}
+          >
+            <Users size={12} />
+            <span>Connections</span>
+          </button>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         {!room ? (
-          /* ═══════════════════════════════════════
-             ══ 🎮 LOBBY SELECTION & CREATION 🎮 ══
-             ═══════════════════════════════════════ */
-          <motion.div 
-            key="lobby-selection"
+          activeSubTab === 'connections' ? (
+            <motion.div 
+              key="connections-list"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25 }}
+              className="w-full"
+            >
+              <ConnectionsPanel />
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="lobby-selection"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -351,7 +389,8 @@ export const CodeBuddyPage: React.FC = () => {
               )}
             </div>
           </motion.div>
-        ) : (
+        )
+      ) : (
           /* ════════════════════════════════════
              ══ ⏳ PRIVATE WAITING LOBBY ⏳ ══
              ════════════════════════════════════ */
