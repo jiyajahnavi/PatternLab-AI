@@ -20,12 +20,19 @@ export const LoginPage: React.FC = () => {
   };
 
   const handleDeveloperBypass = () => {
+    const defaultName = `dev_${Math.floor(1000 + Math.random() * 9000)}`;
+    const inputName = prompt("Enter a developer username for testing (e.g. dev_tom, dev_jerry):", defaultName);
+    if (inputName === null) return; // cancelled
+    
+    const cleanName = inputName.toLowerCase().trim().replace(/[^a-z0-9_]/g, '');
+    const finalName = cleanName || defaultName;
+
     setUser({
-      id: 'd9b329a1-eb24-4a0b-9dfd-8561d36d4f9b',
-      email: 'developer@patternlab.ai',
+      id: `dev-id-${finalName}`,
+      email: `${finalName}@patternlab.ai`,
       user_metadata: {
-        full_name: 'PatternLab Developer',
-        avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=developer'
+        full_name: finalName.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+        avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${finalName}`
       }
     });
   };

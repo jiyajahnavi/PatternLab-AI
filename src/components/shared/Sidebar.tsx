@@ -1,11 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { MessageSquare, BarChart2, User, Settings, Play, Bell, Map } from 'lucide-react';
+import { MessageSquare, BarChart2, User, Settings, Play, Bell, Map, Swords } from 'lucide-react';
+import { useConnectionsStore } from '../../store/useConnectionsStore';
 
 export const Sidebar: React.FC = () => {
+  const { pendingRequests } = useConnectionsStore();
+  const pendingCount = pendingRequests.length;
+
   const navItems = [
     { path: '/chat', icon: MessageSquare, label: 'Chat' },
     { path: '/roadmap', icon: Map, label: 'Roadmap' },
+    { path: '/codebuddy', icon: Swords, label: 'CodeBuddy' },
     { path: '/visualizer', icon: Play, label: 'Visualizer' },
     { path: '/progress', icon: BarChart2, label: 'Progress' },
     { path: '/reminder', icon: Bell, label: 'Reminder' },
@@ -28,6 +33,13 @@ export const Sidebar: React.FC = () => {
           }
         >
           <item.icon size={20} />
+
+          {item.label === 'CodeBuddy' && pendingCount > 0 && (
+            <>
+              <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border border-surface shadow-[0_0_8px_rgba(244,63,94,0.6)] animate-ping" />
+              <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border border-surface shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+            </>
+          )}
 
           {/* Tooltip */}
           <div className="absolute left-full ml-3 px-2 py-1 bg-background text-primary text-xs rounded border border-border opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity duration-150">
