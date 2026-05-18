@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Network, Lock, BookOpen, ExternalLink, Check } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { useProgressStore } from '../../store/useProgressStore';
 import { useUserStore } from '../../store/useUserStore';
@@ -55,7 +54,6 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({ isOpen, node, onCl
   const [loading, setLoading]     = useState(false);
   const { solvedProblems, toggleProblemCompletion } = useProgressStore();
   const { user } = useUserStore();
-  const navigate = useNavigate();
 
   /* ── Escape key ── */
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -241,7 +239,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({ isOpen, node, onCl
                         initial={{ opacity: 0, x: 16 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.04, duration: 0.25, ease: 'easeOut' }}
-                        onClick={() => navigate(`/problem/${prob.id}`)}
+                        onClick={() => prob.url && window.open(prob.url, '_blank', 'noopener,noreferrer')}
                         className={`group flex items-center gap-3 px-4 py-3.5 rounded-xl
                                     border cursor-pointer transition-all duration-200 ${
                           isSolved
@@ -265,13 +263,8 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({ isOpen, node, onCl
                           {isSolved && <Check size={11} strokeWidth={3} />}
                         </button>
 
-                        {/* Info (clickable) */}
-                        <a
-                          href={prob.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 min-w-0 cursor-pointer"
-                        >
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium truncate transition-colors ${
                             isSolved ? 'text-emerald-400/70 line-through font-normal' : 'text-white/80 group-hover:text-white'
                           }`}>
@@ -289,23 +282,17 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({ isOpen, node, onCl
                               <span className="text-[10px] text-white/25">{prob.platform}</span>
                             )}
                           </div>
-                        </a>
+                        </div>
 
-                        {/* External link */}
+                        {/* External link icon */}
                         {prob.url && (
-                          <a
-                            href={prob.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            className="shrink-0 p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                          >
+                          <div className="shrink-0 p-1.5 rounded-lg group-hover:bg-white/10 transition-colors">
                             <ExternalLink size={13} className={`transition-colors ${
                               isSolved
-                                ? 'text-emerald-400/40 hover:text-emerald-400'
-                                : 'text-white/30 hover:text-accent'
+                                ? 'text-emerald-400/40 group-hover:text-emerald-400'
+                                : 'text-white/30 group-hover:text-accent'
                             }`} />
-                          </a>
+                          </div>
                         )}
                       </motion.div>
                     );
